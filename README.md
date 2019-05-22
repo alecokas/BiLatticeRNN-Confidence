@@ -62,7 +62,7 @@ root/
   |     |-- target/
   |     |   train.txt
   |     |   train_debug.txt (if in debug mode)
-  |     |   val.txt
+  |     |   cv.txt
   |     |   test.txt
   |     |   stats.npz
   |
