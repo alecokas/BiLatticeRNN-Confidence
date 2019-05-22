@@ -20,7 +20,7 @@ def plot(directory, onebest=False):
     val_history = np.loadtxt(val_file, usecols=cols)
     assert train_history.size == val_history.size
 
-    x_axis = list(range(1, train_history.size + 1))
+    x_axis = list(range(1, train_history.shape[0] + 1))
     axis = plt.gca()
     if onebest:
         plt.plot(x_axis, train_history, 'r-', label='train')
