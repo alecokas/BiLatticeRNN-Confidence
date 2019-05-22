@@ -66,7 +66,7 @@ def create(opt):
                                   num_workers=opt.nThreads))
         return loaders[0], None, None
 
-    for split in ['train', 'val', 'test']:
+    for split in ['train', 'cv', 'test']:
         print("".ljust(4) + "=> Creating data loader for %s." %split)
         data_file = os.path.join(opt.data, opt.dataset, '%s.txt' %split)
         utils.check_file(data_file)
