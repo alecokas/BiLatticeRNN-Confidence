@@ -65,6 +65,17 @@ def create(opt):
                                   shuffle=opt.shuffle, collate_fn=collate_fn,
                                   num_workers=opt.nThreads))
         return loaders[0], None, None
+    if opt.subtrain:
+        for split in ['subtrain', 'cv', 'test']:
+            print("".ljust(4) + "=> Creating data loader for {}.".format(split))
+            data_file = os.path.join(opt.data, opt.dataset, '{}.txt'.format(split))
+            utils.check_file(data_file)
+            dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg)
+            shuffle = False if split == 'test' else opt.shuffle
+            loaders.append(DataLoader(dataset=dataset, batch_size=opt.batchSize,
+                                    shuffle=shuffle, collate_fn=collate_fn,
+                                    num_workers=opt.nThreads))
+        return loaders[0], loaders[1], loaders[2]
 
     for split in ['train', 'cv', 'test']:
         print("".ljust(4) + "=> Creating data loader for %s." %split)

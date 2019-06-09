@@ -89,6 +89,8 @@ class Opts():
                             help='Percentage of taining data to use')
         parser.add_argument('--shuffle', default=False, action="store_true",
                             help='Flag to shuffle the dataset before training')
+        parser.add_argument('--subtrain', default=False, action='store_true',
+                            help='Run training on a subset of the dataset, but cross validation and test on the full sets')
         # Training/testing options
         parser.add_argument('--nEpochs', default=15, type=int,
                             help='Number of total epochs to run')
