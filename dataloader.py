@@ -68,7 +68,11 @@ def create(opt):
     if opt.subtrain:
         for split in ['subtrain', 'cv', 'test']:
             print("".ljust(4) + "=> Creating data loader for {}.".format(split))
-            data_file = os.path.join(opt.data, opt.dataset, '{}.txt'.format(split))
+            # TODO: Temporarily hard-coded since I can't write to the data direcvtory
+            if split == 'subtrain':
+                data_file = os.path.join('/home/babel/BABEL_OP3_404/releaseB/exp-graphemic-ak2132/tmp/{}.txt'.format(split))
+            else:
+                data_file = os.path.join(opt.data, opt.dataset, '{}.txt'.format(split))
             utils.check_file(data_file)
             dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg)
             shuffle = False if split == 'test' else opt.shuffle
