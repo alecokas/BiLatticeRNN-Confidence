@@ -28,7 +28,9 @@ class Opts():
         elif self.args.dataset.startswith('confnet'):
             self.args.inputSize = 52
         else:
-            raise ValueError
+            # TODO: Temporarily default to 54
+            self.args.inputSize = 54
+            # raise ValueError('Expecting the dataset name to indicate if 1-best, lattice, or confusion network')
 
         # Customized parameters for the network
         arch = self.args.arch.split('-')
