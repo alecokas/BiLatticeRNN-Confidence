@@ -25,6 +25,8 @@ class Lattice:
         self.std = std
         self.child_dict = None
         self.parent_dict = None
+        self.edges = None
+        self.mask = None
         self.ignore = []
         self.load()
 
@@ -37,6 +39,10 @@ class Lattice:
         self.edges = data['edge_data']
         self.child_dict = data['child_2_parent'].item()
         self.parent_dict = data['parent_2_child'].item()
+
+        if 'mask' in data:
+            self.mask = data['mask']
+
         # Backward compatibility
         try:
             self.ignore = list(data['ignore'])

@@ -111,10 +111,12 @@ class LSTM(nn.Module):
             return result
         elif method == 'attention':
             assert self.attention is not None, "build attention model first."
+            # Posterior of incoming edges
             posterior = torch.cat([lattice.edges[i, index] for i in in_edges]).view(-1, 1)
-            posterior = posterior*lattice.std[0, index] + lattice.mean[0, index]
+            # Undo whitening
+            posterior = posterior * lattice.std[0, index] + lattice.mean[0, index]
             context = torch.cat(
-                (posterior, torch.ones_like(posterior)*torch.mean(posterior),
+                (posterior, torch.ones_like(posterior) * torch.mean(posterior),
                  torch.ones_like(posterior)*torch.std(posterior)), dim=1)
             weights = self.attention.forward(in_hidden, context)
             result = torch.mm(weights, in_hidden)
