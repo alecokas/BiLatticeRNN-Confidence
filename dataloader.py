@@ -52,13 +52,13 @@ def collate_fn(batch):
 def create(opt):
     """Create DataLoader object for each set."""
     loaders = []
-    stats_file = os.path.join(opt.data, opt.dataset, 'stats.npz')
+    stats_file = os.path.join(opt.data, 'stats.npz')
     utils.check_file(stats_file)
-    tgt_dir = os.path.join(opt.data, opt.dataset, 'target')
+    tgt_dir = os.path.join(opt.data, 'target')
     utils.check_dir(tgt_dir)
     if opt.debug:
         print("".ljust(4) + "=> Creating data loader for train.")
-        data_file = os.path.join(opt.data, opt.dataset, 'train_debug.txt')
+        data_file = os.path.join(opt.data, 'train_debug.txt')
         utils.check_file(data_file)
         dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg)
         loaders.append(DataLoader(dataset=dataset, batch_size=opt.batchSize,
@@ -72,7 +72,7 @@ def create(opt):
             if split == 'subtrain':
                 data_file = os.path.join('/home/babel/BABEL_OP3_404/releaseB/exp-graphemic-ak2132/tmp/{}.txt'.format(split))
             else:
-                data_file = os.path.join(opt.data, opt.dataset, '{}.txt'.format(split))
+                data_file = os.path.join(opt.data, '{}.txt'.format(split))
             utils.check_file(data_file)
             dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg)
             shuffle = False if split == 'test' else opt.shuffle
@@ -83,7 +83,7 @@ def create(opt):
 
     for split in ['train', 'cv', 'test']:
         print("".ljust(4) + "=> Creating data loader for %s." %split)
-        data_file = os.path.join(opt.data, opt.dataset, '%s.txt' %split)
+        data_file = os.path.join(opt.data, '%s.txt' %split)
         utils.check_file(data_file)
         dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg)
         shuffle = False if split == 'test' else opt.shuffle
@@ -94,11 +94,11 @@ def create(opt):
 
 def resample_dataset(opt, split):
     """Resampling from the entire dataset."""
-    data_file = os.path.join(opt.data, opt.dataset, '%s.txt' %split)
+    data_file = os.path.join(opt.data, '%s.txt' %split)
     utils.check_file(data_file)
-    stats_file = os.path.join(opt.data, opt.dataset, 'stats.npz')
+    stats_file = os.path.join(opt.data, 'stats.npz')
     utils.check_file(stats_file)
-    tgt_dir = os.path.join(opt.data, opt.dataset, 'target')
+    tgt_dir = os.path.join(opt.data, 'target')
     utils.check_dir(tgt_dir)
     dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg)
     loader = DataLoader(dataset=dataset, batch_size=opt.batchSize,

@@ -12,7 +12,7 @@ class Opts():
         """Process calling arguments."""
         self.parse()
 
-        self.args.data = os.path.join(self.args.rootDir, 'data')
+        self.args.data = os.path.join(self.args.rootDir, self.args.dataset)
         self.args.model = os.path.join(self.args.rootDir, 'exp')
 
         # Set torch default tensor type and random seed
