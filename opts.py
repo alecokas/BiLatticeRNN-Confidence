@@ -84,6 +84,8 @@ class Opts():
         # Data options
         parser.add_argument('--dataset', default='lattice_mapped_0.1_prec', type=str,
                             help='Name of dataset')
+        parser.add_argument('--target', default='target', type=str,
+                            help='Name of target directory within the data directory')
         parser.add_argument('--nThreads', default=10, type=int,
                             help='Number of data loading threads')
         parser.add_argument('--trainPctg', default=1.0, type=float,
