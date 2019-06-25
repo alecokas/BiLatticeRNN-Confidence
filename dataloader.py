@@ -54,7 +54,7 @@ def create(opt):
     loaders = []
     stats_file = os.path.join(opt.data, 'stats.npz')
     utils.check_file(stats_file)
-    tgt_dir = os.path.join(opt.data, 'target')
+    tgt_dir = os.path.join(opt.data, opt.target)
     utils.check_dir(tgt_dir)
     if opt.debug:
         print("".ljust(4) + "=> Creating data loader for train.")
@@ -98,7 +98,7 @@ def resample_dataset(opt, split):
     utils.check_file(data_file)
     stats_file = os.path.join(opt.data, 'stats.npz')
     utils.check_file(stats_file)
-    tgt_dir = os.path.join(opt.data, 'target')
+    tgt_dir = os.path.join(opt.data, opt.target)
     utils.check_dir(tgt_dir)
     dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg)
     loader = DataLoader(dataset=dataset, batch_size=opt.batchSize,
