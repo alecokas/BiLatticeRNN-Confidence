@@ -3,6 +3,7 @@
     * a function to create dataloaders for train, val, test
 """
 
+import logging
 import os
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
@@ -18,6 +19,7 @@ class LatticeDataset(Dataset):
         self.percentage = percentage
         self.data = []
         self.target = []
+        self.log_location = '/'.join(data_file.split('/')[:-1] + ['dataset.log'])
 
         np.random.seed(1)
         with open(self.data_file, 'r') as file_in:
@@ -26,8 +28,17 @@ class LatticeDataset(Dataset):
                 if line:
                     utils.check_file(line)
                     tgt_path = os.path.join(self.tgt_dir, line.split('/')[-1])
-                    utils.check_file(tgt_path)
-                    if np.random.rand() < percentage:
+
+                    lattice_has_target = True
+                    if not os.path.isfile(tgt_path):
+                        logging.basicConfig(
+                            filename=self.log_location, filemode='w',
+                            format='%(asctime)s - %(message)s', level=logging.INFO
+                        )
+                        logging.info('{} cannot be found - skipping this lattice.'.format(tgt_path))
+                        lattice_has_target = False
+
+                    if np.random.rand() < percentage and lattice_has_target:
                         self.data.append(line)
                         self.target.append(tgt_path)
                     else:
