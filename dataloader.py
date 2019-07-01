@@ -35,7 +35,7 @@ class LatticeDataset(Dataset):
                             filename=self.log_location, filemode='w',
                             format='%(asctime)s - %(message)s', level=logging.INFO
                         )
-                        logging.info('{} cannot be found - skipping this lattice.'.format(tgt_path))
+                        logging.info('Warning: {} cannot be found - skipping this lattice.'.format(tgt_path))
                         lattice_has_target = False
 
                     if np.random.rand() < percentage and lattice_has_target:
