@@ -5,13 +5,15 @@
     * LatticeRNN model that connects LSTM layers and DNN layers.
 """
 
-import sys
+import math
 import numpy as np
+import sys
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn import functional as F
 from torch.nn import init
+from utils import Dimension
 
 class LSTMCell(nn.LSTMCell):
     """Overriding initialization and naming methods of LSTMCell."""
@@ -301,6 +303,50 @@ class Attention(nn.Module):
         output = self.out(output).view(1, -1)
         output = F.tanh(output)
         return F.softmax(output, dim=1)
+
+class DotProdAttention(nn.Module):
+    """ A class which defines the dot product attention mechanism. """
+
+    def __init__(self, scale=True, dropout=0.1):
+        """ Initialise the dot product attention mechanism """
+        super().__init__()
+        self.dropout = nn.Dropout(dropout)
+        self.scale = scale
+
+    def forward(self, query, key, value, mask=None):
+        """ A forward pass of the attention memchanism which operates over the graphemes.
+        
+            query:  Tensor with dimensions: (Arc, Grapheme, Feature)
+            key:    Tensor with dimensions: (Arc, Grapheme, Feature)
+            value:  Tensor with dimensions: (Arc, Grapheme, Feature)
+        """
+        # Ensure that the key and query are the same length
+        d_k = key.size(-1)
+        assert query.size(-1) == d_k
+
+        # Compute compatability function and normalise across the grapheme dimension
+        # Query:            (Arc, Grapheme, Feature)
+        # transpose(Key):   (Arc, Feature, Grapheme)
+        # Weight Matrix:    (Arc, Feature, Feature)
+        # Compatability fn: (Arc, Grapheme, Grapheme)
+        # W = q A k'
+        attention_weights = torch.bmm(query, key.transpose(Dimension.seq, Dimension.feature))
+
+        if self.scale:
+            attention_weights = attention_weights / math.sqrt(d_k)
+
+        # Softmax normalisation of attention weights over the grapheme sequence
+        # Zero pad attention weights
+        attention_weights = torch.exp(attention_weights)
+        if mask is not None:
+            attention_weights = attention_weights.masked_fill(mask, 0)
+        attention_weights = attention_weights / attention_weights.sum(dim=-1, keepdim=True)
+
+        # Apply dropout and weight value
+        attention_weights = self.dropout(attention_weights)
+        context = torch.bmm(attention_weights, value)
+        return context
+
 
 class Attention2(nn.Module):
     def __init__(self, input_size, initialization, use_bias=True):

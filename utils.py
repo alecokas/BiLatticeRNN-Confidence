@@ -1,5 +1,6 @@
 """A range of utility functions."""
 
+from enum import IntEnum
 import os
 import sys
 
@@ -49,3 +50,9 @@ def color_msg(msg):
 def print_color_msg(msg):
     """Print colored message."""
     print("\033[38;5;108m%s\033[0m" %(msg))
+
+
+class Dimension(IntEnum):
+    arc = 0
+    grapheme = 1
+    feature = 2
