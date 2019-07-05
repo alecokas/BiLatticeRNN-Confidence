@@ -40,8 +40,11 @@ class Lattice:
         self.child_dict = data['child_2_parent'].item()
         self.parent_dict = data['parent_2_child'].item()
 
-        if 'mask' in data:
-            self.mask = data['mask']
+        if 'grapheme_embeddings' in data:
+            self.grapheme_embeddings = data['grapheme_embeddings']
+
+        if 'grapheme_durations' in data:
+            self.grapheme_embeddings = data['grapheme_durations']
 
         # Backward compatibility
         try:

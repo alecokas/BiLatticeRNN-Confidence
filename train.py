@@ -201,7 +201,6 @@ class Trainer():
         wrapper = tqdm(train_loader, dynamic_ncols=True)
         # Looping through batches
         for lattices, targets in wrapper:
-            print('Start of loop')
             assert len(lattices) == len(targets), \
                    "Data and targets with different lengths."
             batch_loss, batch_count = 0, 0
@@ -214,7 +213,6 @@ class Trainer():
             results = manager.list([None] * len(lattices))
             # Fork processes
             for j, (lattice, target) in enumerate(zip(lattices, targets)):
-                print('fork: {}'.format(lattice))
                 fork = mp.Process(target=self.forward_one_lattice,
                                   args=(lattice, target, j, results, True))
                 fork.start()
@@ -222,7 +220,6 @@ class Trainer():
             # Wait until all processes are finished
             for fork in processes:
                 fork.join()
-            print('Colleting loss stats')
             # Collect loss stats
             for result in results:
                 batch_loss += result[0][0]
