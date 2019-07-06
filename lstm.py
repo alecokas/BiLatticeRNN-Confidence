@@ -15,6 +15,10 @@ from torch.nn import functional as F
 from torch.nn import init
 from utils import Dimension
 
+
+NUM_FEATURES = 5
+
+
 class LSTMCell(nn.LSTMCell):
     """Overriding initialization and naming methods of LSTMCell."""
 
@@ -317,7 +321,13 @@ class DotProdAttention(nn.Module):
         """ A forward pass of the attention memchanism which operates over the graphemes.
         """
         reduced_grapheme_data = []
-        for grapheme_data_on_arc in lattice.grapheme_data:
+        print('lattice.grapheme_data shape: {}'.format(lattice.grapheme_data.shape))
+        print('lattice.grapheme_data type: {}'.format(type(lattice.grapheme_data)))
+        lattice_grapheme_data = np.reshape(lattice.grapheme_data, (lattice.grapheme_data.shape, NUM_FEATURES))
+        for grapheme_data_on_arc in lattice_grapheme_data:
+            print('grapheme_data_on_arc: {}'.format(grapheme_data_on_arc))
+            print('type grapheme_data_on_arc: {}'.format(type(grapheme_data_on_arc)))
+            print('shape grapheme_data_on_arc: {}'.format(grapheme_data_on_arc.shape))
             reduced_grapheme_on_arc = self.attend_over_one_grapheme(
                 query=grapheme_data_on_arc,
                 key=grapheme_data_on_arc,

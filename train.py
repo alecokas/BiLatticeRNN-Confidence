@@ -54,7 +54,7 @@ class Trainer():
         self.optimizer.param_groups[0]['initial_lr'] = \
             self.optim_state['initial_lr']
 
-        # Laerning rate scheduler
+        # Learning rate scheduler
         if opt.LRDecay == 'anneal':
             self.scheduler = optim.lr_scheduler.ExponentialLR(
                 self.optimizer, gamma=opt.LRDParam,
@@ -278,7 +278,7 @@ class Trainer():
             # Wait until all processes are finished
             for fork in processes:
                 fork.join()
-            # Colelct loss stats
+            # Collect loss stats
             for result in results:
                 batch_loss += result[0][0]
                 batch_count += result[0][1]
