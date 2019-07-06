@@ -52,7 +52,11 @@ def print_color_msg(msg):
     print("\033[38;5;108m%s\033[0m" %(msg))
 
 
-class Dimension(IntEnum):
+class LatticeDimension(IntEnum):
     arc = 0
     grapheme = 1
     feature = 2
+
+class ArcDimension(IntEnum):
+    grapheme = 0
+    feature = 1
