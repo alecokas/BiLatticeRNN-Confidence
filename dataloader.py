@@ -10,10 +10,17 @@ from torch.utils.data import Dataset, DataLoader
 import utils, lattice
 
 class LatticeDataset(Dataset):
-    """Lattice dataset."""
+    """ Lattice dataset object.
+
+        data:
+            A pyhton list of paths to preprocessed lattices.
+
+        target:
+            A python list of paths to target files.
+    """
 
     def __init__(self, data_file, stats_file, tgt_dir, percentage):
-        """Load data file and dataset statistics."""
+        """ Load data file and dataset statistics. """
         self.data_file = data_file
         self.tgt_dir = tgt_dir
         self.percentage = percentage

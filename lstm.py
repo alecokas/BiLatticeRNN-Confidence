@@ -313,8 +313,22 @@ class DotProdAttention(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.scale = scale
 
-    def forward(self, query, key, value, mask=None):
+    def forward(self, lattice, mask=None):
         """ A forward pass of the attention memchanism which operates over the graphemes.
+        """
+        reduced_grapheme_data = []
+        for grapheme_data_on_arc in lattice.grapheme_data:
+            reduced_grapheme_on_arc = self.attend_over_one_grapheme(
+                query=grapheme_data_on_arc,
+                key=grapheme_data_on_arc,
+                value=grapheme_data_on_arc
+            )
+            reduced_grapheme_data.append(reduced_grapheme_on_arc)
+        return reduced_grapheme_data
+
+
+    def attend_over_one_grapheme(self, query, key, value, mask=None):
+        """ A forward pass of the attention memchanism for a single arc.
         
             query:  Tensor with dimensions: (Arc, Grapheme, Feature)
             key:    Tensor with dimensions: (Arc, Grapheme, Feature)
@@ -388,6 +402,8 @@ class Model(nn.Module):
         else:
             self.attention = None
 
+        self.grapheme_attention = DotProdAttention()
+
         num_directions = 2 if self.opt.bidirectional else 1
         self.lstm = LSTM(LSTMCell, self.opt.inputSize, self.opt.hiddenSize,
                          self.opt.nLSTMLayers, use_bias=True,
@@ -400,6 +416,8 @@ class Model(nn.Module):
 
     def forward(self, lattice):
         """Forward pass through the model."""
+        # Apply attention over the grapheme information
+        reduced_grapheme_info = self.grapheme_attention.forward(lattice)
         # BiLSTM -> FC(relu) -> LayerOut(sigmoid if not logit)
         output = self.lstm.forward(lattice, self.opt.method)
         output = self.dnn.forward(output)
