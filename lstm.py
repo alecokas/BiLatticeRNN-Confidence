@@ -323,7 +323,7 @@ class DotProdAttention(nn.Module):
         reduced_grapheme_data = []
         print('lattice.grapheme_data shape: {}'.format(lattice.grapheme_data.shape))
         print('lattice.grapheme_data type: {}'.format(type(lattice.grapheme_data)))
-        lattice_grapheme_data = np.reshape(lattice.grapheme_data, (lattice.grapheme_data.shape, NUM_FEATURES))
+        lattice_grapheme_data = np.reshape(lattice.grapheme_data, (lattice.grapheme_data.shape[0], NUM_FEATURES))
         for grapheme_data_on_arc in lattice_grapheme_data:
             print('grapheme_data_on_arc: {}'.format(grapheme_data_on_arc))
             print('type grapheme_data_on_arc: {}'.format(type(grapheme_data_on_arc)))
