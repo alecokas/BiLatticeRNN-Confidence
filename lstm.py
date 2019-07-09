@@ -321,18 +321,15 @@ class DotProdAttention(nn.Module):
         """ A forward pass of the attention memchanism which operates over the graphemes.
         """
         reduced_grapheme_data = []
-        print('lattice.grapheme_data shape: {}'.format(lattice.grapheme_data.shape))
-        print('lattice.grapheme_data type: {}'.format(type(lattice.grapheme_data)))
-        lattice_grapheme_data = np.reshape(lattice.grapheme_data, (lattice.grapheme_data.shape[0], NUM_FEATURES))
-        for grapheme_data_on_arc in lattice_grapheme_data:
-            print('grapheme_data_on_arc: {}'.format(grapheme_data_on_arc))
-            print('type grapheme_data_on_arc: {}'.format(type(grapheme_data_on_arc)))
-            print('shape grapheme_data_on_arc: {}'.format(grapheme_data_on_arc.shape))
+        for grapheme_data_on_arc in lattice.grapheme_data:
+            grapheme_data_on_arc = grapheme_data_on_arc[None, :, :]
+
             reduced_grapheme_on_arc = self.attend_over_one_grapheme(
                 query=grapheme_data_on_arc,
                 key=grapheme_data_on_arc,
                 value=grapheme_data_on_arc
             )
+
             reduced_grapheme_data.append(reduced_grapheme_on_arc)
         return reduced_grapheme_data
 
@@ -345,8 +342,8 @@ class DotProdAttention(nn.Module):
             value:  Tensor with dimensions: (Arc, Grapheme, Feature)
         """
         # Ensure that the key and query are the same length
-        d_k = key.size(-1)
-        assert query.size(-1) == d_k
+        d_k = key.shape[-1]
+        assert query.shape[-1] == d_k
 
         # Compute compatability function and normalise across the grapheme dimension
         # Query:            (Arc, Grapheme, Feature)
@@ -354,7 +351,7 @@ class DotProdAttention(nn.Module):
         # Weight Matrix:    (Arc, Feature, Feature)
         # Compatability fn: (Arc, Grapheme, Grapheme)
         # W = q A k'
-        attention_weights = torch.bmm(query, key.transpose(Dimension.seq, Dimension.feature))
+        attention_weights = torch.bmm(query, key.transpose(Dimension.grapheme, Dimension.feature))
 
         if self.scale:
             attention_weights = attention_weights / math.sqrt(d_k)
