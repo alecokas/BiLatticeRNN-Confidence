@@ -334,41 +334,6 @@ class DotProdAttention(nn.Module):
         return reduced_grapheme_data
 
 
-    # def attend_over_one_grapheme(self, query, key, value, mask=None):
-    #     """ A forward pass of the attention memchanism for a single arc.
-
-    #         query:  Tensor with dimensions: (Arc, Grapheme, Feature)
-    #         key:    Tensor with dimensions: (Arc, Grapheme, Feature)
-    #         value:  Tensor with dimensions: (Arc, Grapheme, Feature)
-    #     """
-    #     # Ensure that the key and query are the same length
-    #     d_k = key.shape[-1]
-    #     assert query.shape[-1] == d_k
-
-    #     # Compute compatability function and normalise across the grapheme dimension
-    #     # Query:                 (Arc, Grapheme, Feature)
-    #     # transpose(Key):        (Arc, Feature, Grapheme)
-    #     # Learnable Matrix (A):  (Arc, Feature, Feature)
-    #     # Attention Weights (e): (Arc, Grapheme, Grapheme)
-    #     # W = q A k' or W = q k'
-    #     attention_weights = torch.bmm(query, key.transpose(Dimension.grapheme, Dimension.feature))
-
-    #     if self.scale:
-    #         attention_weights = attention_weights / math.sqrt(d_k)
-
-    #     # Softmax normalisation of attention weights over the grapheme sequence
-    #     # Zero pad attention weights
-    #     attention_weights = torch.exp(attention_weights)
-    #     # if mask is not None:
-    #     #     attention_weights = attention_weights.masked_fill(mask, 0)
-    #     attention_weights = attention_weights / attention_weights.sum(dim=-1, keepdim=True)
-
-    #     # Apply dropout and weight value
-    #     attention_weights = self.dropout(attention_weights)
-    #     context = torch.bmm(attention_weights, value)
-    #     return context
-
-
     def attend_over_one_grapheme(self, query, key, value):
             """ A forward pass of the attention memchanism for a single arc.
 
@@ -379,12 +344,10 @@ class DotProdAttention(nn.Module):
             # Ensure that the key and query are the same dimensions
             num_graphemes = key.shape[1]
             assert query.shape[1] == num_graphemes
-            print('num_graphemes: {}'.format(num_graphemes))
             num_features = key.shape[2]
             assert query.shape[2] == num_features
-            print('num_features: {}'.format(num_features))
 
-            # Compute compatability function and normalise across the grapheme dimension
+            ## Compute compatability function and normalise across the grapheme dimension
             # transpose(Query):      (Arc, Feature, Grapheme)
             # Key:                   (Arc, Grapheme, Feature)
             # Learnable Matrix (A):  (Arc, Feature, Feature)
@@ -405,8 +368,14 @@ class DotProdAttention(nn.Module):
             # Tile so that the same attention weight operates over an entire feature vector
             attention_weights = torch.cat(num_features * [attention_weights], dim=2)
 
-            # Apply dropout and weight value
-            context = attention_weights * value
+            ## Apply dropout and weight value to compress to a fixed form
+            # attention_weights: (Arc, Grapheme, Feature) --> (Feature, Arc, Grapheme)
+            # value:             (Arc, Grapheme, Feature) --> (Feature, Grapheme, Arc)
+            # context:           (Arc, 1, Feature)
+            attention_weights = self.dropout(attention_weights)
+            context = torch.bmm(attention_weights.view(num_features, 1, num_graphemes), value.view(num_features, num_graphemes, 1))
+            context = context.view(1, 1, num_features)
+            assert context.shape == torch.Size([1, 1, num_features]), "The context is not of the expected dimensions"
             return context
 
 
@@ -422,10 +391,8 @@ class DotProdAttention(nn.Module):
             # Ensure that the key and query are the same dimensions
             num_graphemes = key.shape[1]
             assert query.shape[1] == num_graphemes
-            print('num_graphemes: {}'.format(num_graphemes))
             num_features = key.shape[2]
             assert query.shape[2] == num_features
-            print('num_features: {}'.format(num_features))
 
             # Compute compatability function and normalise across the grapheme dimension
             # Query:                 (Arc, Grapheme, Feature)
@@ -446,30 +413,6 @@ class DotProdAttention(nn.Module):
             context = torch.bmm(attention_weights, value)
             return context
 
-
-class Attention2(nn.Module):
-    def __init__(self, input_size, initialization, use_bias=True):
-        super(Attention2, self).__init__()
-        self.input_size = input_size
-        self.initialization = initialization
-        self.use_bias = use_bias
-
-        self.attention_layer = nn.Linear(input_size, input_size, bias=use_bias)
-        self.context_vector = nn.Parameter(torch.zeros(input_size),
-                                           requires_grad=True)
-
-    def reset_parameters(self):
-        init_method = getattr(init, self.initialization)
-        init_method(self.context_vector)
-        init_method(self.attention_layer.weight)
-        init.constant(self.attention_layer.bias, val=0)
-
-    def forward(self, x, extension):
-        output = torch.cat((x, extension), dim=1)
-        output = self.attention_layer(output)
-        output = F.tanh(output)
-        output = torch.matmul(output, self.context_vector)
-        return F.softmax(output.view(1, -1), dim=1)
 
 class Model(nn.Module):
     """Bidirectional LSTM model on lattices."""
