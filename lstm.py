@@ -397,7 +397,8 @@ class DotProdAttention(nn.Module):
 
             # Softmax normalisation of attention weights over the grapheme sequence
             # Only take the diagonal
-            attention_weights = torch.exp(attention_weights) * torch.eye((num_graphemes))[None,:,:]
+            attention_weights = torch.exp(attention_weights) * \
+                torch.autograd.Variable(torch.eye((num_graphemes))[None,:,:], requires_grad=False)
             attention_weights = torch.sum(attention_weights, dim=-1)[:,:,None]
             attention_weights = attention_weights / attention_weights.sum(dim=-1, keepdim=True)
 
