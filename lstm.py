@@ -331,7 +331,7 @@ class DotProdAttention(nn.Module):
             )
 
             reduced_grapheme_data.append(reduced_grapheme_on_arc)
-        return reduced_grapheme_data
+        return torch.cat(reduced_grapheme_data, dim=0)
 
 
     def attend_over_one_grapheme(self, query, key, value):
@@ -374,8 +374,8 @@ class DotProdAttention(nn.Module):
             # context:           (Arc, 1, Feature)
             attention_weights = self.dropout(attention_weights)
             context = torch.bmm(attention_weights.view(num_features, 1, num_graphemes), value.view(num_features, num_graphemes, 1))
-            context = context.view(1, 1, num_features)
-            assert context.shape == torch.Size([1, 1, num_features]), "The context is not of the expected dimensions"
+            context = context.view(1, num_features)
+            assert context.shape == torch.Size([1, num_features]), "The context is not of the expected dimensions"
             return context
 
 
@@ -446,6 +446,12 @@ class Model(nn.Module):
         """Forward pass through the model."""
         # Apply attention over the grapheme information
         reduced_grapheme_info = self.grapheme_attention.forward(lattice)
+        print('lattice.edges.shape: {}'.format(lattice.edges.shape))
+        print('reduced_grapheme_info[0].shape: {}'.format(reduced_grapheme_info[0].shape))
+        print('reduced_grapheme_info.shape: {}'.format(reduced_grapheme_info.shape))
+        lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
+        print('new lattice.edges.shape: {}'.format(lattice.edges.shape))
+        print()
         # BiLSTM -> FC(relu) -> LayerOut(sigmoid if not logit)
         output = self.lstm.forward(lattice, self.opt.method)
         output = self.dnn.forward(output)
