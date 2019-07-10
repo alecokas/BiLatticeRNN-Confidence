@@ -323,7 +323,6 @@ class DotProdAttention(nn.Module):
         """
         reduced_grapheme_data = []
         for grapheme_data_on_arc in lattice.grapheme_data:
-            grapheme_data_on_arc = grapheme_data_on_arc[None, :, :]
 
             reduced_grapheme_on_arc = self.attend_over_one_grapheme(
                 query=grapheme_data_on_arc,
@@ -331,50 +330,47 @@ class DotProdAttention(nn.Module):
                 value=grapheme_data_on_arc
             )
 
-            reduced_grapheme_data.append(reduced_grapheme_on_arc)
+            reduced_grapheme_data.append(reduced_grapheme_on_arc[None, :, :])
         return torch.cat(reduced_grapheme_data, dim=0)
 
 
     def attend_over_one_grapheme(self, query, key, value):
             """ A forward pass of the attention memchanism for a single arc.
 
-                query:  Tensor with dimensions: (Arc, Grapheme, Feature)
-                key:    Tensor with dimensions: (Arc, Grapheme, Feature)
-                value:  Tensor with dimensions: (Arc, Grapheme, Feature)
+                query:  Tensor with dimensions: (Grapheme, Feature)
+                key:    Tensor with dimensions: (Grapheme, Feature)
+                value:  Tensor with dimensions: (Grapheme, Feature)
             """
             # Ensure that the key and query are the same dimensions
-            num_graphemes = key.shape[1]
-            assert query.shape[1] == num_graphemes
-            num_features = key.shape[2]
-            assert query.shape[2] == num_features
+            num_graphemes = key.shape[0]
+            assert query.shape[0] == num_graphemes
+            num_features = key.shape[1]
+            assert query.shape[1] == num_features
 
             ## Compute compatability function and normalise across the grapheme dimension
-            # transpose(Query):      (Arc, Feature, Grapheme)
-            # Key:                   (Arc, Grapheme, Feature)
-            # Learnable Matrix (A):  (Arc, Feature, Feature)
-            # Attention Weights (e): (Arc, Grapheme, Grapheme)
+            # transpose(Query):      (Feature, Grapheme)
+            # Key:                   (Grapheme, Feature)
+            # Learnable Matrix (A):  (Feature, Feature)
+            # Attention Weights (e): (Grapheme, Grapheme)
             # W = q' A k or W = q' k
-            attention_weights = torch.bmm(query, key.transpose(1, 2))
+            attention_weights = torch.mm(query, key.transpose(0, 1))
 
             if self.scale:
                 attention_weights = attention_weights / math.sqrt(num_features)
 
             # Softmax normalisation of attention weights over the grapheme sequence
-            # Only take the diagonal
+            # Only take the diagonal - Shape: (1, Grapheme)
             attention_weights = torch.exp(attention_weights) * \
-                torch.autograd.Variable(torch.eye((num_graphemes))[None,:,:], requires_grad=False)
-            attention_weights = torch.sum(attention_weights, dim=-1)[:,:,None]
-            attention_weights = attention_weights / attention_weights.sum(dim=-1, keepdim=True)
-
-            # Tile so that the same attention weight operates over an entire feature vector
-            attention_weights = torch.cat(num_features * [attention_weights], dim=2)
+                torch.autograd.Variable(torch.eye((num_graphemes)), requires_grad=False)
+            attention_weights = torch.sum(attention_weights, dim=-1)[None, :]
+            attention_weights = attention_weights / attention_weights.sum(dim=-1)
 
             ## Apply dropout and weight value to compress to a fixed form
-            # attention_weights: (Arc, Grapheme, Feature) --> (Feature, Arc, Grapheme)
-            # value:             (Arc, Grapheme, Feature) --> (Feature, Grapheme, Arc)
-            # context:           (Arc, 1, Feature)
+            # attention_weights: (1, Grapheme)
+            # value:             (Grapheme, Feature)
+            # context:           (1, Feature)
             attention_weights = self.dropout(attention_weights)
-            context = torch.bmm(attention_weights.view(num_features, 1, num_graphemes), value.view(num_features, num_graphemes, 1))
+            context = torch.mm(attention_weights, value)
             context = context.view(1, num_features)
             assert context.shape == torch.Size([1, num_features]), "The context is not of the expected dimensions"
             return context
@@ -448,6 +444,7 @@ class Model(nn.Module):
         # Apply attention over the grapheme information
         reduced_grapheme_info = self.grapheme_attention.forward(lattice)
         lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
+
         # BiLSTM -> FC(relu) -> LayerOut(sigmoid if not logit)
         output = self.lstm.forward(lattice, self.opt.method)
         output = self.dnn.forward(output)
