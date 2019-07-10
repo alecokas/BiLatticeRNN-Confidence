@@ -369,81 +369,81 @@ class DotProdAttention(nn.Module):
     #     return context
 
 
-def attend_over_one_grapheme(self, query, key, value):
-        """ A forward pass of the attention memchanism for a single arc.
+    def attend_over_one_grapheme(self, query, key, value):
+            """ A forward pass of the attention memchanism for a single arc.
 
-            query:  Tensor with dimensions: (Arc, Grapheme, Feature)
-            key:    Tensor with dimensions: (Arc, Grapheme, Feature)
-            value:  Tensor with dimensions: (Arc, Grapheme, Feature)
-        """
-        # Ensure that the key and query are the same dimensions
-        num_graphemes = key.shape[1]
-        assert query.shape[1] == num_graphemes
-        print('num_graphemes: {}'.format(num_graphemes))
-        num_features = key.shape[2]
-        assert query.shape[2] == num_features
-        print('num_features: {}'.format(num_features))
+                query:  Tensor with dimensions: (Arc, Grapheme, Feature)
+                key:    Tensor with dimensions: (Arc, Grapheme, Feature)
+                value:  Tensor with dimensions: (Arc, Grapheme, Feature)
+            """
+            # Ensure that the key and query are the same dimensions
+            num_graphemes = key.shape[1]
+            assert query.shape[1] == num_graphemes
+            print('num_graphemes: {}'.format(num_graphemes))
+            num_features = key.shape[2]
+            assert query.shape[2] == num_features
+            print('num_features: {}'.format(num_features))
 
-        # Compute compatability function and normalise across the grapheme dimension
-        # transpose(Query):      (Arc, Feature, Grapheme)
-        # Key:                   (Arc, Grapheme, Feature)
-        # Learnable Matrix (A):  (Arc, Feature, Feature)
-        # Attention Weights (e): (Arc, Grapheme, Grapheme)
-        # W = q' A k or W = q' k
-        attention_weights = torch.bmm(query, key.transpose(1, 2))
+            # Compute compatability function and normalise across the grapheme dimension
+            # transpose(Query):      (Arc, Feature, Grapheme)
+            # Key:                   (Arc, Grapheme, Feature)
+            # Learnable Matrix (A):  (Arc, Feature, Feature)
+            # Attention Weights (e): (Arc, Grapheme, Grapheme)
+            # W = q' A k or W = q' k
+            attention_weights = torch.bmm(query, key.transpose(1, 2))
 
-        if self.scale:
-            attention_weights = attention_weights / math.sqrt(num_features)
+            if self.scale:
+                attention_weights = attention_weights / math.sqrt(num_features)
 
-        # Softmax normalisation of attention weights over the grapheme sequence
-        # Only take the diagonal
-        attention_weights = torch.exp(attention_weights) * torch.eye((num_graphemes))[None,:,:]
-        attention_weights = torch.sum(attention_weights, dim=-1)[:,:,None]
-        attention_weights = attention_weights / attention_weights.sum(dim=-1, keepdim=True)
+            # Softmax normalisation of attention weights over the grapheme sequence
+            # Only take the diagonal
+            attention_weights = torch.exp(attention_weights) * torch.eye((num_graphemes))[None,:,:]
+            attention_weights = torch.sum(attention_weights, dim=-1)[:,:,None]
+            attention_weights = attention_weights / attention_weights.sum(dim=-1, keepdim=True)
 
-        # Tile so that the same attention weight operates over an entire feature vector
-        attention_weights = torch.cat(num_features * [attention_weights], dim=2)
+            # Tile so that the same attention weight operates over an entire feature vector
+            attention_weights = torch.cat(num_features * [attention_weights], dim=2)
 
-        # Apply dropout and weight value
-        context = attention_weights * value
-        return context
+            # Apply dropout and weight value
+            context = attention_weights * value
+            return context
 
 
-def transformer_style_attention(self, query, key, value):
-        """ A forward pass of the attention memchanism for a single arc.
-            Uses the outer product to get the interactions between each grapheme and the
-            the full sentence.
-        
-            query:  Tensor with dimensions: (Arc, Grapheme, Feature)
-            key':    Tensor with dimensions: (Arc, Feature, Grapheme)
-            value:  Tensor with dimensions: (Arc, Grapheme, Feature)
-        """
-        # Ensure that the key and query are the same dimensions
-        num_graphemes = key.shape[1]
-        assert query.shape[1] == num_graphemes
-        print('num_graphemes: {}'.format(num_graphemes))
-        num_features = key.shape[2]
-        assert query.shape[2] == num_features
-        print('num_features: {}'.format(num_features))
+    def transformer_style_attention(self, query, key, value):
+            """ A forward pass of the attention memchanism for a single arc.
+                Uses the outer product to get the interactions between each grapheme and the
+                the full sentence.
+            
+                query:  Tensor with dimensions: (Arc, Grapheme, Feature)
+                key':    Tensor with dimensions: (Arc, Feature, Grapheme)
+                value:  Tensor with dimensions: (Arc, Grapheme, Feature)
+            """
+            # Ensure that the key and query are the same dimensions
+            num_graphemes = key.shape[1]
+            assert query.shape[1] == num_graphemes
+            print('num_graphemes: {}'.format(num_graphemes))
+            num_features = key.shape[2]
+            assert query.shape[2] == num_features
+            print('num_features: {}'.format(num_features))
 
-        # Compute compatability function and normalise across the grapheme dimension
-        # Query:                 (Arc, Grapheme, Feature)
-        # transpose(Key):        (Arc, Feature, Grapheme)
-        # Learnable Matrix (A):  (Arc, Feature, Feature)
-        # Attention Weights (e): (Arc, Grapheme, Grapheme)
-        # W = q A k' or W = q k'
-        attention_weights = torch.bmm(query, key.transpose(1, 2))
+            # Compute compatability function and normalise across the grapheme dimension
+            # Query:                 (Arc, Grapheme, Feature)
+            # transpose(Key):        (Arc, Feature, Grapheme)
+            # Learnable Matrix (A):  (Arc, Feature, Feature)
+            # Attention Weights (e): (Arc, Grapheme, Grapheme)
+            # W = q A k' or W = q k'
+            attention_weights = torch.bmm(query, key.transpose(1, 2))
 
-        if self.scale:
-            attention_weights = attention_weights / math.sqrt(num_features)
+            if self.scale:
+                attention_weights = attention_weights / math.sqrt(num_features)
 
-        # Softmax normalisation of attention weights over the grapheme sequence
-        attention_weights = torch.exp(attention_weights)
-        attention_weights = attention_weights / attention_weights.sum(dim=-1, keepdim=True)
+            # Softmax normalisation of attention weights over the grapheme sequence
+            attention_weights = torch.exp(attention_weights)
+            attention_weights = attention_weights / attention_weights.sum(dim=-1, keepdim=True)
 
-        # Apply dropout and weight value
-        context = torch.bmm(attention_weights, value)
-        return context
+            # Apply dropout and weight value
+            context = torch.bmm(attention_weights, value)
+            return context
 
 
 class Attention2(nn.Module):
