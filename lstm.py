@@ -330,7 +330,7 @@ class DotProdAttention(nn.Module):
                 value=grapheme_data_on_arc
             )
 
-            reduced_grapheme_data.append(reduced_grapheme_on_arc[None, :, :])
+            reduced_grapheme_data.append(reduced_grapheme_on_arc)
         return torch.cat(reduced_grapheme_data, dim=0)
 
 
