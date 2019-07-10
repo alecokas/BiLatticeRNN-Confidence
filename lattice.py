@@ -53,26 +53,29 @@ class Lattice:
         self.edge_num = self.edges.shape[0]
 
         if self.edge_num > 0:
-            self.feature_dim = self.edges.shape[1]
             if self.mean is not None:
-                if self.mean.shape[1] == self.feature_dim:
+                if self.mean.shape[1] == self.feature_dim():
                     self.edges = self.edges - self.mean
                 else:
                     print("Dimension of mean vector is inconsistent with data.")
                     sys.exit(1)
             if self.std is not None:
-                if self.std.shape[1] == self.feature_dim:
+                if self.std.shape[1] == self.feature_dim():
                     self.edges = self.edges / self.std
                 else:
                     print("Dimension of std vector is inconsistent with data.")
                     sys.exit(1)
         else:
-            self.feature_dim = None
+            raise Exception('All lattices must have a definite positive number of nodes.')
 
     def reverse(self):
         """Reverse the graph."""
         self.nodes.reverse()
         self.child_dict, self.parent_dict = self.parent_dict, self.child_dict
+
+
+    def feature_dim(self):
+        return self.edges.shape[1]
 
 class Target:
     """Target object."""
