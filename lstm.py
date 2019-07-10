@@ -140,6 +140,7 @@ class LSTM(nn.Module):
 
         node_hidden[lattice.nodes[0]] = state[0].view(1, -1)
         node_cell[lattice.nodes[0]] = state[1].view(1, -1)
+
         # The incoming and outgoing edges must be:
         # either a list of lists (for confusion network)
         # or a list of ints (for normal lattices)
@@ -446,12 +447,7 @@ class Model(nn.Module):
         """Forward pass through the model."""
         # Apply attention over the grapheme information
         reduced_grapheme_info = self.grapheme_attention.forward(lattice)
-        print('lattice.edges.shape: {}'.format(lattice.edges.shape))
-        print('reduced_grapheme_info[0].shape: {}'.format(reduced_grapheme_info[0].shape))
-        print('reduced_grapheme_info.shape: {}'.format(reduced_grapheme_info.shape))
         lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
-        print('new lattice.edges.shape: {}'.format(lattice.edges.shape))
-        print()
         # BiLSTM -> FC(relu) -> LayerOut(sigmoid if not logit)
         output = self.lstm.forward(lattice, self.opt.method)
         output = self.dnn.forward(output)
