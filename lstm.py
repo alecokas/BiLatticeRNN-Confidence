@@ -320,12 +320,12 @@ class AttentionHead(nn.Module):
         self.key_lin_tfm = nn.Linear(d_model, d_feature)
         self.value_lin_tfm = nn.Linear(d_model, d_feature)
 
-    def forward(self, queries, keys, values):
-        """ For Q, K, V: (Arcs, Graphemes, Features)
+    def forward(self, lattice):
+        """ For lattice.grapheme_data = Q, K, V: (Arcs, Graphemes, Features)
         """
-        Q = self.query_lin_tfm(queries)
-        K = self.key_lin_tfm(keys)
-        V = self.value_lin_tfm(values)
+        Q = self.query_lin_tfm(lattice.grapheme_data)
+        K = self.key_lin_tfm(lattice.grapheme_data)
+        V = self.value_lin_tfm(lattice.grapheme_data)
         # Q, K, V: (Arcs, Graphemes, Features)
         x = self.attn(Q, K, V)
         return x
@@ -345,7 +345,7 @@ class DotProdAttention(nn.Module):
         reduced_grapheme_data = []
         for grapheme_data_on_arc in lattice.grapheme_data:
 
-            reduced_grapheme_on_arc = self.attend_over_one_grapheme(
+            reduced_grapheme_on_arc = self.attend(
                 query=grapheme_data_on_arc,
                 key=grapheme_data_on_arc,
                 value=grapheme_data_on_arc
@@ -355,7 +355,7 @@ class DotProdAttention(nn.Module):
         return torch.cat(reduced_grapheme_data, dim=0)
 
 
-    def attend_over_one_grapheme(self, query, key, value):
+    def attend(self, query, key, value):
             """ A forward pass of the attention memchanism for a single arc.
 
                 query:  Tensor with dimensions: (Grapheme, Feature)
