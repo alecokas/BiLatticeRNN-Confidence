@@ -339,19 +339,15 @@ class DotProdAttention(nn.Module):
         super().__init__()
         self.scale = scale
 
-    def forward(self, lattice, mask=None):
+    def forward(self, Q, K, V):
         """ A forward pass of the attention memchanism which operates over the graphemes.
         """
         reduced_grapheme_data = []
-        for grapheme_data_on_arc in lattice.grapheme_data:
 
-            reduced_grapheme_on_arc = self.attend(
-                query=grapheme_data_on_arc,
-                key=grapheme_data_on_arc,
-                value=grapheme_data_on_arc
-            )
-
+        for Q_i, K_i, V_i in zip(Q, K, V):
+            reduced_grapheme_on_arc = self.attend(query=Q_i, key=K_i, value=V_i)
             reduced_grapheme_data.append(reduced_grapheme_on_arc)
+
         return torch.cat(reduced_grapheme_data, dim=0)
 
 
