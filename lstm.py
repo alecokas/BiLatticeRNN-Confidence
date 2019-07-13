@@ -309,13 +309,34 @@ class Attention(nn.Module):
         output = F.tanh(output)
         return F.softmax(output, dim=1)
 
+
+class AttentionHead(nn.Module):
+    """ Single attentionn head """
+    def __init__(self, d_model, d_feature):
+        super().__init__()
+        # Assume d_q == d_k == d_v == d_model \\ 1 == NUM_FEATURES
+        self.attn = DotProdAttention()
+        self.query_lin_tfm = nn.Linear(d_model, d_feature)
+        self.key_lin_tfm = nn.Linear(d_model, d_feature)
+        self.value_lin_tfm = nn.Linear(d_model, d_feature)
+
+    def forward(self, queries, keys, values):
+        """ For Q, K, V: (Arcs, Graphemes, Features)
+        """
+        Q = self.query_lin_tfm(queries)
+        K = self.key_lin_tfm(keys)
+        V = self.value_lin_tfm(values)
+        # Q, K, V: (Arcs, Graphemes, Features)
+        x = self.attn(Q, K, V)
+        return x
+
+
 class DotProdAttention(nn.Module):
     """ A class which defines the dot product attention mechanism. """
 
-    def __init__(self, scale=True, dropout=0.1):
+    def __init__(self, scale=True):
         """ Initialise the dot product attention mechanism """
         super().__init__()
-        self.dropout = nn.Dropout(dropout)
         self.scale = scale
 
     def forward(self, lattice, mask=None):
@@ -365,11 +386,10 @@ class DotProdAttention(nn.Module):
             attention_weights = torch.sum(attention_weights, dim=-1)[None, :]
             attention_weights = attention_weights / attention_weights.sum(dim=-1)
 
-            ## Apply dropout and weight value to compress to a fixed form
+            ## Weight value to compress to a fixed form
             # attention_weights: (1, Grapheme)
             # value:             (Grapheme, Feature)
             # context:           (1, Feature)
-            attention_weights = self.dropout(attention_weights)
             context = torch.mm(attention_weights, value)
             context = context.view(1, num_features)
             assert context.shape == torch.Size([1, num_features]), "The context is not of the expected dimensions"
@@ -427,7 +447,10 @@ class Model(nn.Module):
         else:
             self.attention = None
 
-        self.grapheme_attention = DotProdAttention()
+        self.grapheme_attention = AttentionHead(
+            d_model=NUM_FEATURES,
+            d_feature=NUM_FEATURES
+        )
 
         num_directions = 2 if self.opt.bidirectional else 1
         self.lstm = LSTM(LSTMCell, self.opt.inputSize, self.opt.hiddenSize,
