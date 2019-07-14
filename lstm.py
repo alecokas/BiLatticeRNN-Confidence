@@ -461,8 +461,9 @@ class Model(nn.Module):
     def forward(self, lattice):
         """Forward pass through the model."""
         # Apply attention over the grapheme information
-        reduced_grapheme_info = self.grapheme_attention.forward(lattice)
-        lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
+        if hasattr(lattice, 'grapheme_data'):
+            reduced_grapheme_info = self.grapheme_attention.forward(lattice)
+            lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
 
         # BiLSTM -> FC(relu) -> LayerOut(sigmoid if not logit)
         output = self.lstm.forward(lattice, self.opt.method)

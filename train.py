@@ -132,7 +132,8 @@ class Trainer():
             if update:
                 self.optimizer.zero_grad()
             lattice.edges = Variable(torch.from_numpy(lattice.edges).float())
-            lattice.grapheme_data = Variable(torch.from_numpy(lattice.grapheme_data).float())
+            if hasattr(lattice, 'grapheme_data'):
+                lattice.grapheme_data = Variable(torch.from_numpy(lattice.grapheme_data).float())
             target_t = Variable(
                 torch.from_numpy(target.target).float().view(-1, 1))
             output = self.model.forward(lattice)
