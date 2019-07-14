@@ -19,9 +19,9 @@ class Opts():
         torch.set_default_tensor_type('torch.FloatTensor')
         torch.manual_seed(self.args.manualSeed)
 
-        if self.args.lattice_type == 'grapheme':
+        if self.args.lattice_type.lower() == 'grapheme':
             lattice_type_tag = 'G'
-        elif self.args.lattice_type == 'word':
+        elif self.args.lattice_type.lower() == 'word':
             self.args.grapheme_features = 0
             lattice_type_tag = 'W'
         else:
@@ -104,7 +104,7 @@ class Opts():
                             help='Flag to shuffle the dataset before training')
         parser.add_argument('--subtrain', default=False, action='store_true',
                             help='Run training on a subset of the dataset, but cross validation and test on the full sets')
-        parser.add_argument('--lattice-type', default='G', choice=['G', 'W'],
+        parser.add_argument('--lattice-type', default='word', choices=['grapheme', 'word'],
                             help='Indicate whether the grapheme information should be read from the lattice or not.')
         parser.add_argument('--grapheme-features', default=5, type=int,
                             help='The number of grapheme features to consider, if any exists in the data.')

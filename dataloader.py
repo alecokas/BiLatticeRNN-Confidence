@@ -59,7 +59,7 @@ class LatticeDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        return (lattice.Lattice(self.data[idx], self.mean, self.std, type=self.lattice_type),
+        return (lattice.Lattice(self.data[idx], self.mean, self.std, lattice_type=self.lattice_type),
                 lattice.Target(self.target[idx]))
 
 def collate_fn(batch):
@@ -89,7 +89,7 @@ def create(opt):
             print("".ljust(4) + "=> Creating data loader for {}.".format(split))
             data_file = os.path.join(opt.data, '{}.txt'.format(split))
             utils.check_file(data_file)
-            dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg)
+            dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg, opt.lattice_type)
             shuffle = False if split == 'test' else opt.shuffle
             loaders.append(DataLoader(dataset=dataset, batch_size=opt.batchSize,
                                     shuffle=shuffle, collate_fn=collate_fn,
@@ -100,7 +100,7 @@ def create(opt):
         print("".ljust(4) + "=> Creating data loader for %s." %split)
         data_file = os.path.join(opt.data, '%s.txt' %split)
         utils.check_file(data_file)
-        dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg)
+        dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg, opt.lattice_type)
         shuffle = False if split == 'test' else opt.shuffle
         loaders.append(DataLoader(dataset=dataset, batch_size=opt.batchSize,
                                   shuffle=shuffle, collate_fn=collate_fn,
