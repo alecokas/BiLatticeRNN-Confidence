@@ -19,6 +19,14 @@ class Opts():
         torch.set_default_tensor_type('torch.FloatTensor')
         torch.manual_seed(self.args.manualSeed)
 
+        if self.args.lattice_type == 'grapheme':
+            lattice_type_tag = 'G'
+        elif self.args.lattice_type == 'word':
+            self.args.grapheme_features = 0
+            lattice_type_tag = 'W'
+        else:
+            raise Exception('Not a valid lattice type')
+
         # Customized parameters for dataset
         if 'onebest' in self.args.dataset:
             self.args.inputSize = 52
@@ -28,8 +36,8 @@ class Opts():
         elif self.args.dataset.startswith('confnet'):
             self.args.inputSize = 52
         else:
-            # TODO: Temporarily default to 59
-            self.args.inputSize = 59
+            # TODO: Make cleaner
+            self.args.inputSize = 54 + self.args.grapheme_features
             # raise ValueError('Expecting the dataset name to indicate if 1-best, lattice, or confusion network')
 
         # Customized parameters for the network
@@ -60,6 +68,8 @@ class Opts():
                             + '_' + 'O='+str(self.args.optimizer) \
                             + '_' + 'D='+self.args.LRDecay \
                             + '-' + str(self.args.LRDParam) \
+                            + '_' + str(lattice_type_tag) \
+                            + '-' + 'F='+str(self.args.grapheme_features) \
                             + '_' + self.args.suffix
 
         if self.args.debug:
@@ -94,6 +104,10 @@ class Opts():
                             help='Flag to shuffle the dataset before training')
         parser.add_argument('--subtrain', default=False, action='store_true',
                             help='Run training on a subset of the dataset, but cross validation and test on the full sets')
+        parser.add_argument('--lattice-type', default='G', choice=['G', 'W'],
+                            help='Indicate whether the grapheme information should be read from the lattice or not.')
+        parser.add_argument('--grapheme-features', default=5, type=int,
+                            help='The number of grapheme features to consider, if any exists in the data.')
         # Training/testing options
         parser.add_argument('--nEpochs', default=15, type=int,
                             help='Number of total epochs to run')

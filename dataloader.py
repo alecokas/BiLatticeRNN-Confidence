@@ -19,13 +19,14 @@ class LatticeDataset(Dataset):
             A python list of paths to target files.
     """
 
-    def __init__(self, data_file, stats_file, tgt_dir, percentage):
+    def __init__(self, data_file, stats_file, tgt_dir, percentage, lattice_type):
         """ Load data file and dataset statistics. """
         self.data_file = data_file
         self.tgt_dir = tgt_dir
         self.percentage = percentage
         self.data = []
         self.target = []
+        self.lattice_type = lattice_type
         self.log_location = '/'.join(data_file.split('/')[:-1] + ['dataset.log'])
 
         np.random.seed(1)
@@ -58,7 +59,7 @@ class LatticeDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        return (lattice.Lattice(self.data[idx], self.mean, self.std),
+        return (lattice.Lattice(self.data[idx], self.mean, self.std, type=self.lattice_type),
                 lattice.Target(self.target[idx]))
 
 def collate_fn(batch):
@@ -78,7 +79,7 @@ def create(opt):
         print("".ljust(4) + "=> Creating data loader for train.")
         data_file = os.path.join(opt.data, 'train_debug.txt')
         utils.check_file(data_file)
-        dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg)
+        dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg, opt.lattice_type)
         loaders.append(DataLoader(dataset=dataset, batch_size=opt.batchSize,
                                   shuffle=opt.shuffle, collate_fn=collate_fn,
                                   num_workers=opt.nThreads))

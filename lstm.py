@@ -461,7 +461,7 @@ class Model(nn.Module):
     def forward(self, lattice):
         """Forward pass through the model."""
         # Apply attention over the grapheme information
-        if hasattr(lattice, 'grapheme_data'):
+        if lattice.is_grapheme:
             reduced_grapheme_info = self.grapheme_attention.forward(lattice)
             lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
 

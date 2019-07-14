@@ -9,7 +9,7 @@ import numpy as np
 class Lattice:
     """Lattice object."""
 
-    def __init__(self, path, mean=None, std=None):
+    def __init__(self, path, mean=None, std=None, lattice_type='G'):
         """Lattice object.
 
         Arguments:
@@ -28,6 +28,7 @@ class Lattice:
         self.edges = None
         self.mask = None
         self.ignore = []
+        self.is_grapheme = True if lattice_type == 'G' else False
         self.load()
 
     def load(self):
@@ -40,7 +41,7 @@ class Lattice:
         self.child_dict = data['child_2_parent'].item()
         self.parent_dict = data['parent_2_child'].item()
 
-        if 'grapheme_data' in data:
+        if self.is_grapheme:
             self.grapheme_data = data['grapheme_data']
 
         # Backward compatibility
