@@ -50,8 +50,8 @@ def main():
         utils.print_color_msg("==> Testing:")
         print("".ljust(4) + "=> Epoch %i" %(start_epoch-1))
         _, prediction, reference, post = trainer.test(test_loader, start_epoch-1)
-        if opt.loss == 'BCELogit':
-            prediction = F.sigmoid(torch.Tensor(prediction)).numpy()
+        # TODO: For now we assume this is true: if opt.loss == 'BCELogit':
+        prediction = F.sigmoid(torch.Tensor(prediction)).numpy()
         nce = evaluation.nce(reference, prediction)
         precision, recall, area = evaluation.pr(reference, prediction)
         precision_bl, recall_bl, area_bl = evaluation.pr(reference, post)
