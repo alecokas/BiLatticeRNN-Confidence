@@ -28,8 +28,8 @@ def plot(directory, onebest=False):
     else:
         plt.plot(x_axis, train_history[:, 0], 'r-', label='train_allarc')
         plt.plot(x_axis, val_history[:, 0], 'g-', label='val_allarc')
-        plt.plot(x_axis, train_history[:, 1], 'r--', label='train_onebest')
-        plt.plot(x_axis, val_history[:, 1], 'g--', label='val_onebest')
+        # plt.plot(x_axis, train_history[:, 1], 'r--', label='train_onebest')
+        # plt.plot(x_axis, val_history[:, 1], 'g--', label='val_onebest')
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
     plt.xticks(x_axis)
     axis.spines['top'].set_visible(False)
