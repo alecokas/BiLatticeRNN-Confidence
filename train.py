@@ -336,7 +336,7 @@ class Trainer():
             # Wait until all processes are finished
             for fork in processes:
                 fork.join()
-            # Colelct loss stats
+            # Collect loss stats
             for result in results:
                 batch_loss += result[0][0]
                 batch_count += result[0][1]

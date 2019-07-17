@@ -33,7 +33,7 @@ class Opts():
             self.args.onebest = True
         elif self.args.dataset.startswith('lattice'):
             self.args.inputSize = 54
-        elif self.args.dataset.startswith('confnet'):
+        elif self.args.dataset.startswith('confnet') or self.args.dataset.endswith('-cn'):
             self.args.inputSize = 52
         else:
             # TODO: Make cleaner
