@@ -317,7 +317,7 @@ class LuongAttention(torch.nn.Module):
         self.num_features = num_features
         self.attn_type = attn_type
 
-        if self.attn_type not in ['dot', 'general', 'concat']:
+        if self.attn_type not in ['dot', 'general', 'concat', 'scaled-dot']:
             raise ValueError(self.attn_type, "is not an appropriate attention type.")
 
         if self.attn_type == 'general':
@@ -338,7 +338,9 @@ class LuongAttention(torch.nn.Module):
         return torch.sum(self.v * energy, dim=2)
 
     def forward(self, key, query, val):
-        """ Compute and return the attention weights and the result of the weighted sum. """ 
+        """ Compute and return the attention weights and the result of the weighted sum.
+            key, query, val are of the tensor form: (Arcs, Graphemes, Features)
+        """
         # Calculate the attention weights (alpha) based on the given attention type
         if self.attn_type == 'general':
             attn_energies = self.general_score(key, query)
@@ -346,6 +348,8 @@ class LuongAttention(torch.nn.Module):
             attn_energies = self.concat_score(key, query)
         elif self.attn_type == 'dot':
             attn_energies = self.dot_score(key, query)
+        elif self.attn_type == 'scaled-dot':
+            attn_energies = self.dot_score(key, query) / self.num_features
 
         # Alpha is the softmax normalized probability scores (with added dimension)
         alpha = F.softmax(attn_energies, dim=1).unsqueeze(1)
@@ -487,10 +491,11 @@ class Model(nn.Module):
         else:
             self.attention = None
 
-        self.grapheme_attention = LuongAttention(
-            attn_type='general',
-            num_features=NUM_FEATURES
-        )
+        if self.opts.grapheme_combination != 'None':
+            self.grapheme_attention = LuongAttention(
+                attn_type=self.opt.grapheme_combination,
+                num_features=NUM_FEATURES
+            )
 
         num_directions = 2 if self.opt.bidirectional else 1
         self.lstm = LSTM(LSTMCell, self.opt.inputSize, self.opt.hiddenSize,

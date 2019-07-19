@@ -70,6 +70,7 @@ class Opts():
                             + '-' + str(self.args.LRDParam) \
                             + '_' + str(lattice_type_tag) \
                             + '-' + 'F='+str(self.args.grapheme_features) \
+                            + '_' + 'G-C='+str(self.args.grapheme_combination) \
                             + '_' + self.args.suffix
 
         if self.args.debug:
@@ -153,6 +154,9 @@ class Opts():
         parser.add_argument('--combine-method', default='mean', type=str,
                             help='method for combining edges',
                             choices=['mean', 'max', 'posterior', 'attention'])
+        parser.add_argument('--grapheme-combination', default='None', type=str,
+                            help='The method to use for grapheme combination',
+                            choices=['None', 'dot', 'general', 'concat', 'scaled-dot'])
         parser.add_argument('--suffix', default='LatticeRNN', type=str,
                             help='Suffix for saving the model')
         self.args = parser.parse_args()
