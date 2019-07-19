@@ -309,6 +309,50 @@ class Attention(nn.Module):
         output = F.tanh(output)
         return F.softmax(output, dim=1)
 
+class LuongAttention(torch.nn.Module):
+    """ Luong attention layer as defined in: https://arxiv.org/pdf/1508.04025.pdf """
+    def __init__(self, attn_type, num_features):
+        """ Initialise the Attention layer """
+        super(LuongAttention, self).__init__()
+        self.num_features = num_features
+        self.attn_type = attn_type
+
+        if self.attn_type not in ['dot', 'general', 'concat']:
+            raise ValueError(self.attn_type, "is not an appropriate attention type.")
+
+        if self.attn_type == 'general':
+            self.attn = torch.nn.Linear(self.num_features, self.num_features)
+        elif self.attn_type == 'concat':
+            self.attn = torch.nn.Linear(self.num_features * 2, self.num_features)
+            self.v = torch.nn.Variable(torch.FloatTensor(self.num_features))
+
+    def dot_score(self, key, query):
+        return torch.sum(key * query, dim=2)
+
+    def general_score(self, key, query):
+        energy = self.attn(query)
+        return torch.sum(key * energy, dim=2)
+
+    def concat_score(self, key, query):
+        energy = self.attn(torch.cat((key.expand(query.size(0), -1, -1), query), 2)).tanh()
+        return torch.sum(self.v * energy, dim=2)
+
+    def forward(self, key, query, val):
+        """ Compute and return the attention weights and the result of the weighted sum. """ 
+        # Calculate the attention weights (alpha) based on the given attention type
+        if self.attn_type == 'general':
+            attn_energies = self.general_score(key, query)
+        elif self.attn_type == 'concat':
+            attn_energies = self.concat_score(key, query)
+        elif self.attn_type == 'dot':
+            attn_energies = self.dot_score(key, query)
+
+        # Alpha is the softmax normalized probability scores (with added dimension)
+        alpha = F.softmax(attn_energies, dim=1).unsqueeze(1)
+        # The context is the result of the weighted summation
+        context = torch.bmm(alpha, val)
+
+        return context, alpha
 
 class AttentionHead(nn.Module):
     """ Single attentionn head """
@@ -443,9 +487,9 @@ class Model(nn.Module):
         else:
             self.attention = None
 
-        self.grapheme_attention = AttentionHead(
-            d_model=NUM_FEATURES,
-            d_feature=NUM_FEATURES
+        self.grapheme_attention = LuongAttention(
+            attn_type='general',
+            num_features=NUM_FEATURES
         )
 
         num_directions = 2 if self.opt.bidirectional else 1
@@ -462,10 +506,14 @@ class Model(nn.Module):
         """Forward pass through the model."""
         # Apply attention over the grapheme information
         if lattice.is_grapheme:
-            reduced_grapheme_info = self.grapheme_attention.forward(lattice)
+            reduced_grapheme_info = self.grapheme_attention.forward(
+                key=lattice.grapheme_data,
+                query=lattice.grapheme_data,
+                val=lattice.grapheme_data
+            )
             lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
 
-        # BiLSTM -> FC(relu) -> LayerOut(sigmoid if not logit)
+        # BiLSTM -> FC(relu) -> LayerOut (sigmoid if not logit)
         output = self.lstm.forward(lattice, self.opt.method)
         output = self.dnn.forward(output)
         return output

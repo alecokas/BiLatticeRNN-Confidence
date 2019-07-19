@@ -34,7 +34,7 @@ class Opts():
         elif self.args.dataset.startswith('lattice'):
             self.args.inputSize = 54
         elif self.args.dataset.startswith('confnet') or self.args.dataset.endswith('-cn'):
-            self.args.inputSize = 52
+            self.args.inputSize = 52 + self.args.grapheme_features
         else:
             # TODO: Make cleaner
             self.args.inputSize = 54 + self.args.grapheme_features
