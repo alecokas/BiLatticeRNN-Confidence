@@ -49,7 +49,7 @@ class Opts():
         self.args.linearSize = int(arch[3])
         self.args.bidirectional = True
 
-        if self.args.method == 'attention':
+        if self.args.combine_method == 'attention':
             self.args.attentionLayers = 1
             self.args.attentionSize = 64
 
@@ -61,7 +61,7 @@ class Opts():
         # Setup model directory
         self.args.hashKey = self.args.dataset \
                             + '_' + self.args.arch \
-                            + '_' + self.args.method \
+                            + '_' + self.args.combine_method \
                             + '_' + 'L='+str(self.args.LR) \
                             + '_' + 'M='+str(self.args.momentum) \
                             + '_' + 'S='+str(self.args.batchSize) \
@@ -150,7 +150,7 @@ class Opts():
         parser.add_argument('--arch', default='1-128-1-128', type=str,
                             help='Model architecture: '\
                                  'nLSTMLayer-LSTMSize-nFCLayer-nFCSize')
-        parser.add_argument('--method', default='mean', type=str,
+        parser.add_argument('--combine-method', default='mean', type=str,
                             help='method for combining edges',
                             choices=['mean', 'max', 'posterior', 'attention'])
         parser.add_argument('--suffix', default='LatticeRNN', type=str,

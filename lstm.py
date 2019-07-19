@@ -77,11 +77,11 @@ class LSTM(nn.Module):
                 cell = self.get_cell(layer, direction)
                 cell.reset_parameters()
 
-    def combine_edges(self, method, lattice, hidden, in_edges):
+    def combine_edges(self, combine_method, lattice, hidden, in_edges):
         """Methods for combining hidden states of all incoming edges.
 
         Arguments:
-            method {str} -- choose from 'max', 'mean', 'posterior', 'attention', 'attention_simple'
+            combine_method {str} -- choose from 'max', 'mean', 'posterior', 'attention', 'attention_simple'
             lattice {obj} -- lattice object
             hidden {list} -- each element is a hidden representation
             in_edges {list} -- each element is the index of incoming edges
@@ -97,15 +97,15 @@ class LSTM(nn.Module):
         in_hidden = torch.cat([hidden[i].view(1, -1) for i in in_edges], 0)
         if len(in_edges) == 1:
             return in_hidden
-        elif method == 'max':
+        elif combine_method == 'max':
             posterior = torch.cat([lattice.edges[i, index] for i in in_edges])
             _, max_idx = torch.max(posterior, 0)
             result = in_hidden[max_idx]
             return result
-        elif method == 'mean':
+        elif combine_method == 'mean':
             result = torch.mean(in_hidden, 0, keepdim=True)
             return result
-        elif method == 'posterior':
+        elif combine_method == 'posterior':
             posterior = torch.cat([lattice.edges[i, index] for i in in_edges])
             posterior = posterior*lattice.std[0, index] + lattice.mean[0, index]
             posterior.data.clamp_(min=1e-6)
@@ -115,7 +115,7 @@ class LSTM(nn.Module):
                 sys.exit(1)
             result = torch.mm(posterior.view(1, -1), in_hidden)
             return result
-        elif method == 'attention':
+        elif combine_method == 'attention':
             assert self.attention is not None, "build attention model first."
             # Posterior of incoming edges
             posterior = torch.cat([lattice.edges[i, index] for i in in_edges]).view(-1, 1)
@@ -130,7 +130,7 @@ class LSTM(nn.Module):
         else:
             raise NotImplementedError
 
-    def _forward_rnn(self, cell, lattice, input_, method, state):
+    def _forward_rnn(self, cell, lattice, input_, combine_method, state):
         """Forward through one layer of LSTM."""
         edge_hidden = [None] * lattice.edge_num
         node_hidden = [None] * lattice.node_num
@@ -155,9 +155,9 @@ class LSTM(nn.Module):
                 else:
                     assert all(isinstance(item, int) for item in in_edges)
                 node_hidden[each_node] = self.combine_edges(
-                    method, lattice, edge_hidden, in_edges)
+                    combine_method, lattice, edge_hidden, in_edges)
                 node_cell[each_node] = self.combine_edges(
-                    method, lattice, edge_cell, in_edges)
+                    combine_method, lattice, edge_cell, in_edges)
 
             # If the node is a parent, compute each outgoing edge states
             if each_node in lattice.parent_dict:
@@ -181,7 +181,7 @@ class LSTM(nn.Module):
         edge_hidden = torch.cat(edge_hidden, 0)
         return edge_hidden, end_node_state
 
-    def forward(self, lattice, method):
+    def forward(self, lattice, combine_method):
         """Complete multi-layer LSTM network."""
         # Set initial states to zero
         h_0 = Variable(lattice.edges.data.new(self.num_directions,
@@ -199,7 +199,7 @@ class LSTM(nn.Module):
                     lattice.reverse()
                 layer_output, (layer_h_n, layer_c_n) = LSTM._forward_rnn(
                     self, cell=cell, lattice=lattice, input_=output,
-                    method=method, state=cur_state)
+                    combine_method=combine_method, state=cur_state)
                 cur_output.append(layer_output)
                 cur_h_n.append(layer_h_n)
                 cur_c_n.append(layer_c_n)
@@ -479,7 +479,7 @@ class Model(nn.Module):
         nn.Module.__init__(self)
         self.opt = opt
 
-        if self.opt.method == 'attention':
+        if self.opt.combine_method == 'attention':
             self.attention = Attention(self.opt.hiddenSize + 3,
                                        self.opt.attentionSize,
                                        self.opt.attentionLayers, self.opt.init,
@@ -514,7 +514,7 @@ class Model(nn.Module):
             lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
 
         # BiLSTM -> FC(relu) -> LayerOut (sigmoid if not logit)
-        output = self.lstm.forward(lattice, self.opt.method)
+        output = self.lstm.forward(lattice, self.opt.combine_method)
         output = self.dnn.forward(output)
         return output
 
