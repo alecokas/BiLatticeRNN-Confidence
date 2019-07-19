@@ -9,7 +9,7 @@ import numpy as np
 class Lattice:
     """Lattice object."""
 
-    def __init__(self, path, mean=None, std=None, lattice_type='G'):
+    def __init__(self, path, mean=None, std=None, lattice_type='grapheme'):
         """Lattice object.
 
         Arguments:
@@ -28,7 +28,7 @@ class Lattice:
         self.edges = None
         self.mask = None
         self.ignore = []
-        self.is_grapheme = True if lattice_type == 'G' else False
+        self.is_grapheme = True if lattice_type == 'grapheme' else False
         self.load()
 
     def load(self):

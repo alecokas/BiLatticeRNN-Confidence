@@ -115,7 +115,7 @@ def resample_dataset(opt, split):
     utils.check_file(stats_file)
     tgt_dir = os.path.join(opt.data, opt.target)
     utils.check_dir(tgt_dir)
-    dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg)
+    dataset = LatticeDataset(data_file, stats_file, tgt_dir, opt.trainPctg, opt.lattice_type)
     loader = DataLoader(dataset=dataset, batch_size=opt.batchSize,
                         shuffle=opt.shuffle, collate_fn=collate_fn,
                         num_workers=opt.nThreads)

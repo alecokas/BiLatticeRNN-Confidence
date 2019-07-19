@@ -491,7 +491,7 @@ class Model(nn.Module):
         else:
             self.attention = None
 
-        if self.opts.grapheme_combination != 'None':
+        if self.opt.grapheme_combination != 'None':
             self.grapheme_attention = LuongAttention(
                 attn_type=self.opt.grapheme_combination,
                 num_features=NUM_FEATURES
