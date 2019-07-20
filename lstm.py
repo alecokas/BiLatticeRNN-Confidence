@@ -511,11 +511,12 @@ class Model(nn.Module):
         """Forward pass through the model."""
         # Apply attention over the grapheme information
         if lattice.is_grapheme:
-            reduced_grapheme_info = self.grapheme_attention.forward(
+            reduced_grapheme_info, alphas = self.grapheme_attention.forward(
                 key=lattice.grapheme_data,
                 query=lattice.grapheme_data,
                 val=lattice.grapheme_data
             )
+            reduced_grapheme_info = reduced_grapheme_info.squeeze(1)
             lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
 
         # BiLSTM -> FC(relu) -> LayerOut (sigmoid if not logit)
