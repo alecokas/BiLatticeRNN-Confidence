@@ -492,10 +492,13 @@ class Model(nn.Module):
             self.attention = None
 
         if self.opt.grapheme_combination != 'None':
+            self.is_graphemic = True
             self.grapheme_attention = LuongAttention(
                 attn_type=self.opt.grapheme_combination,
                 num_features=NUM_FEATURES
             )
+        else:
+            self.is_graphemic = False
 
         num_directions = 2 if self.opt.bidirectional else 1
         self.lstm = LSTM(LSTMCell, self.opt.inputSize, self.opt.hiddenSize,
@@ -510,8 +513,8 @@ class Model(nn.Module):
     def forward(self, lattice):
         """Forward pass through the model."""
         # Apply attention over the grapheme information
-        if lattice.is_grapheme:
-            reduced_grapheme_info, alphas = self.grapheme_attention.forward(
+        if self.is_graphemic:
+            reduced_grapheme_info, _ = self.grapheme_attention.forward(
                 key=lattice.grapheme_data,
                 query=lattice.grapheme_data,
                 val=lattice.grapheme_data
