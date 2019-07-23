@@ -53,10 +53,10 @@ class Opts():
         self.args.linearSize = int(arch[3])
         self.args.bidirectional = True
 
-        grapheme_arc = self.args.grapheme_arch.split('-')
-        assert len(arch) == 2, 'bad grapheme model architecture input argument'
-        self.args.grapheme_num_layers = int(grapheme_arc[0])
-        self.args.grapheme_hidden_size = int(grapheme_arc[1])
+        grapheme_arch = self.args.grapheme_arch.split('-')
+        assert len(grapheme_arch) == 2, 'bad grapheme model architecture input argument'
+        self.args.grapheme_num_layers = int(grapheme_arch[0])
+        self.args.grapheme_hidden_size = int(grapheme_arch[1])
         self.args.grapheme_bidirectional = True
 
         if self.args.arc_combine_method == 'attention':
@@ -162,7 +162,7 @@ class Opts():
         parser.add_argument('--arch', default='1-128-1-128', type=str,
                             help='Model architecture: '\
                                  'nLSTMLayer-LSTMSize-nFCLayer-nFCSize')
-        parser.add_argument('--combine-method', default='mean', type=str,
+        parser.add_argument('--arc_combine-method', default='mean', type=str,
                             help='method for combining edges',
                             choices=['mean', 'max', 'posterior', 'attention'])
         # Grapheme level model options

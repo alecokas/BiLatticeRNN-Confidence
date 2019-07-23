@@ -364,14 +364,15 @@ class GraphemeEncoder(nn.Module):
         nn.Module.__init__(self)
 
         # Defining some parameters
-        self.hidden_size = opt.grapheme_hidden_size,
-        self.num_layers = opt.grapheme_num_layers,
+        self.hidden_size = opt.grapheme_hidden_size
+        self.num_layers = opt.grapheme_num_layers
 
         self.rnn = nn.RNN(
             input_size=opt.grapheme_features,
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
-            bidirectional=opt.grapheme_bidirectional
+            bidirectional=opt.grapheme_bidirectional,
+            batch_first=True
         )
     
     def forward(self, x):
@@ -380,8 +381,7 @@ class GraphemeEncoder(nn.Module):
         hidden_state = self.init_hidden_state(num_arcs)
 
         # Passing in the input and hidden state into the model and obtaining outputs
-        out, hidden_state = self.rnn(x, hidden_state)
-               
+        out, hidden_state = self.rnn(x)
         return out, hidden_state
     
     def init_hidden_state(self, batch_size):
@@ -410,7 +410,7 @@ class Model(nn.Module):
                 attn_type=self.opt.grapheme_combination,
                 num_features=self.opt.grapheme_features
             )
-            if self.opts.grapheme_encoding:
+            if self.opt.grapheme_encoding:
                 self.has_grapheme_encoding = True
                 self.grapheme_rnn = GraphemeEncoder(self.opt)
             else:
