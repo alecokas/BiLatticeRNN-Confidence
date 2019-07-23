@@ -406,14 +406,19 @@ class Model(nn.Module):
 
         if self.opt.grapheme_combination != 'None':
             self.is_graphemic = True
-            self.grapheme_attention = LuongAttention(
-                attn_type=self.opt.grapheme_combination,
-                num_features=self.opt.grapheme_features
-            )
+
             if self.opt.grapheme_encoding:
-                self.has_grapheme_encoding = True
                 self.grapheme_rnn = GraphemeEncoder(self.opt)
+                self.grapheme_attention = LuongAttention(
+                    attn_type=self.opt.grapheme_combination,
+                    num_features=self.opt.grapheme_hidden_size * 2
+                )
+                self.has_grapheme_encoding = True
             else:
+                self.grapheme_attention = LuongAttention(
+                    attn_type=self.opt.grapheme_combination,
+                    num_features=self.opt.grapheme_features
+                )
                 self.is_graphemic = False
         else:
             self.is_graphemic = False
