@@ -408,6 +408,7 @@ class Model(nn.Module):
             self.is_graphemic = True
 
             if self.opt.grapheme_encoding:
+                #print('self.opt.grapheme_encoding: {}'.format(self.opt.grapheme_encoding))
                 self.grapheme_rnn = GraphemeEncoder(self.opt)
                 self.grapheme_attention = LuongAttention(
                     attn_type=self.opt.grapheme_combination,
@@ -419,7 +420,7 @@ class Model(nn.Module):
                     attn_type=self.opt.grapheme_combination,
                     num_features=self.opt.grapheme_features
                 )
-                self.is_graphemic = False
+                self.has_grapheme_encoding = False
         else:
             self.is_graphemic = False
 
@@ -436,25 +437,28 @@ class Model(nn.Module):
     def forward(self, lattice):
         """Forward pass through the model."""
         # Apply attention over the grapheme information
+        #print('self.is_graphemic: {}'.format(self.is_graphemic))
         if self.is_graphemic:
 
             if self.has_grapheme_encoding:
                 grapheme_encoding, hidden_state = self.grapheme_rnn.forward(lattice.grapheme_data)
-
+                #print('grapheme_encoding.shape: {}'.format(grapheme_encoding.shape))
                 reduced_grapheme_info, _ = self.grapheme_attention.forward(
                     key=grapheme_encoding,
                     query=grapheme_encoding,
                     val=grapheme_encoding
                 )
             else:
+                #print('Flat attention starting')
                 reduced_grapheme_info, _ = self.grapheme_attention.forward(
                     key=lattice.grapheme_data,
                     query=lattice.grapheme_data,
                     val=lattice.grapheme_data
                 )
+            #print('reduced_grapheme_info.shape: {}'.format(reduced_grapheme_info.shape))
             reduced_grapheme_info = reduced_grapheme_info.squeeze(1)
             lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
-
+            #print('lattice.edges.shape: {}'.format(lattice.edges.shape))
         # BiLSTM -> FC(relu) -> LayerOut (sigmoid if not logit)
         output = self.lstm.forward(lattice, self.opt.arc_combine_method)
         output = self.dnn.forward(output)

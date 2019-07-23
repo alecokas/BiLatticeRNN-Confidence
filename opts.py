@@ -27,19 +27,6 @@ class Opts():
         else:
             raise Exception('Not a valid lattice type')
 
-        # Customized parameters for dataset
-        if 'onebest' in self.args.dataset:
-            self.args.inputSize = 52
-            self.args.onebest = True
-        elif self.args.dataset.startswith('lattice'):
-            self.args.inputSize = 54
-        elif self.args.dataset.startswith('confnet') or self.args.dataset.endswith('-cn'):
-            self.args.inputSize = 52 + self.args.grapheme_features
-        else:
-            # TODO: Make cleaner
-            self.args.inputSize = 54 + self.args.grapheme_features
-            # raise ValueError('Expecting the dataset name to indicate if 1-best, lattice, or confusion network')
-
         if self.args.grapheme_combination == 'None':
             # Won't read in the grapheme information
             self.args.grapheme_features = 0
@@ -58,6 +45,22 @@ class Opts():
         self.args.grapheme_num_layers = int(grapheme_arch[0])
         self.args.grapheme_hidden_size = int(grapheme_arch[1])
         self.args.grapheme_bidirectional = True
+
+        # Customized parameters for dataset
+        if 'onebest' in self.args.dataset:
+            self.args.inputSize = 52
+            self.args.onebest = True
+        elif self.args.dataset.startswith('lattice'):
+            self.args.inputSize = 54
+        elif self.args.dataset.startswith('confnet') or self.args.dataset.endswith('-cn'):
+            if self.args.grapheme_encoding:
+                self.args.inputSize = 52 + self.args.grapheme_hidden_size * 2
+            else:
+                self.args.inputSize = 52 + self.args.grapheme_features
+        else:
+            # TODO: Make cleaner
+            self.args.inputSize = 54 + self.args.grapheme_features
+            # raise ValueError('Expecting the dataset name to indicate if 1-best, lattice, or confusion network')
 
         if self.args.arc_combine_method == 'attention':
             self.args.attentionLayers = 1
