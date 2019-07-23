@@ -434,13 +434,19 @@ class Model(nn.Module):
         if self.is_graphemic:
 
             if self.has_grapheme_encoding:
-                self.grapheme_rnn.forward(input=, hx=)
+                grapheme_encoding, hidden_state = self.grapheme_rnn.forward(lattice.grapheme_data)
 
-            reduced_grapheme_info, _ = self.grapheme_attention.forward(
-                key=lattice.grapheme_data,
-                query=lattice.grapheme_data,
-                val=lattice.grapheme_data
-            )
+                reduced_grapheme_info, _ = self.grapheme_attention.forward(
+                    key=grapheme_encoding,
+                    query=grapheme_encoding,
+                    val=grapheme_encoding
+                )
+            else:
+                reduced_grapheme_info, _ = self.grapheme_attention.forward(
+                    key=lattice.grapheme_data,
+                    query=lattice.grapheme_data,
+                    val=lattice.grapheme_data
+                )
             reduced_grapheme_info = reduced_grapheme_info.squeeze(1)
             lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
 
