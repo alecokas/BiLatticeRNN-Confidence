@@ -40,6 +40,10 @@ class Opts():
             self.args.inputSize = 54 + self.args.grapheme_features
             # raise ValueError('Expecting the dataset name to indicate if 1-best, lattice, or confusion network')
 
+        if self.args.grapheme_combination == 'None':
+            # Won't read in the grapheme information
+            self.args.grapheme_features = 0
+
         # Customized parameters for the network
         arch = self.args.arch.split('-')
         assert len(arch) == 4, 'bad architecture input argument'
@@ -49,7 +53,13 @@ class Opts():
         self.args.linearSize = int(arch[3])
         self.args.bidirectional = True
 
-        if self.args.combine_method == 'attention':
+        grapheme_arc = self.args.grapheme_arch.split('-')
+        assert len(arch) == 2, 'bad grapheme model architecture input argument'
+        self.args.grapheme_num_layers = int(grapheme_arc[0])
+        self.args.grapheme_hidden_size = int(grapheme_arc[1])
+        self.args.grapheme_bidirectional = True
+
+        if self.args.arc_combine_method == 'attention':
             self.args.attentionLayers = 1
             self.args.attentionSize = 64
 
@@ -61,7 +71,7 @@ class Opts():
         # Setup model directory
         self.args.hashKey = self.args.dataset \
                             + '_' + self.args.arch \
-                            + '_' + self.args.combine_method \
+                            + '_' + self.args.arc_combine_method \
                             + '_' + 'L='+str(self.args.LR) \
                             + '_' + 'M='+str(self.args.momentum) \
                             + '_' + 'S='+str(self.args.batchSize) \
@@ -105,6 +115,7 @@ class Opts():
                             help='Flag to shuffle the dataset before training')
         parser.add_argument('--subtrain', default=False, action='store_true',
                             help='Run training on a subset of the dataset, but cross validation and test on the full sets')
+        # Grapheme data options
         parser.add_argument('--lattice-type', default='word', choices=['grapheme', 'word'],
                             help='Indicate whether the grapheme information should be read from the lattice or not.')
         parser.add_argument('--grapheme-features', default=5, type=int,
@@ -142,7 +153,7 @@ class Opts():
         parser.add_argument('--optimizer', default='SGD', type=str,
                             help='Optimizer type',
                             choices=['SGD', 'Adam'])
-        # Model options
+        # Word level model options
         parser.add_argument('--init', default='kaiming_normal', type=str,
                             help='Initialisation method for linear layers',
                             choices=['uniform', 'normal',
@@ -154,9 +165,15 @@ class Opts():
         parser.add_argument('--combine-method', default='mean', type=str,
                             help='method for combining edges',
                             choices=['mean', 'max', 'posterior', 'attention'])
+        # Grapheme level model options
         parser.add_argument('--grapheme-combination', default='None', type=str,
                             help='The method to use for grapheme combination',
                             choices=['None', 'dot', 'general', 'concat', 'scaled-dot'])
+        parser.add_argument('--grapheme-encoding', default=False, action="store_true",
+                            help='Use a bidirectional recurrent structure to encode the grapheme information')
+        parser.add_argument('--grapheme-arch', default='1-10', type=str,
+                            help='Grapheme model architecture: num_layers-layer_size')
+        # Naming options
         parser.add_argument('--suffix', default='LatticeRNN', type=str,
                             help='Suffix for saving the model')
         self.args = parser.parse_args()

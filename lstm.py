@@ -358,122 +358,35 @@ class LuongAttention(torch.nn.Module):
 
         return context, alpha
 
-class AttentionHead(nn.Module):
-    """ Single attentionn head """
-    def __init__(self, d_model, d_feature):
-        super().__init__()
-        # Assume d_q == d_k == d_v == d_model \\ 1 == NUM_FEATURES
-        self.attn = DotProdAttention()
-        self.query_lin_tfm = nn.Linear(d_model, d_feature)
-        self.key_lin_tfm = nn.Linear(d_model, d_feature)
-        self.value_lin_tfm = nn.Linear(d_model, d_feature)
 
-    def forward(self, lattice):
-        """ For lattice.grapheme_data = Q, K, V: (Arcs, Graphemes, Features)
-        """
-        Q = self.query_lin_tfm(lattice.grapheme_data)
-        K = self.key_lin_tfm(lattice.grapheme_data)
-        V = self.value_lin_tfm(lattice.grapheme_data)
-        # Q, K, V: (Arcs, Graphemes, Features)
-        x = self.attn(Q, K, V)
-        return x
+class GraphemeEncoder(nn.Module):
+    def __init__(self, opt):
+        nn.Module.__init__(self)
 
+        # Defining some parameters
+        self.hidden_size = opt.grapheme_hidden_size,
+        self.num_layers = opt.grapheme_num_layers,
 
-class DotProdAttention(nn.Module):
-    """ A class which defines the dot product attention mechanism. """
+        self.rnn = nn.RNN(
+            input_size=opt.grapheme_features,
+            hidden_size=self.hidden_size,
+            num_layers=self.num_layers,
+            bidirectional=opt.grapheme_bidirectional
+        )
+    
+    def forward(self, x):
+        num_arcs = x.size(0)
+        # Initializing hidden state for the first grapheme
+        hidden_state = self.init_hidden_state(num_arcs)
 
-    def __init__(self, scale=True):
-        """ Initialise the dot product attention mechanism """
-        super().__init__()
-        self.scale = scale
-
-    def forward(self, Q, K, V):
-        """ A forward pass of the attention memchanism which operates over the graphemes.
-        """
-        reduced_grapheme_data = []
-
-        for Q_i, K_i, V_i in zip(Q, K, V):
-            reduced_grapheme_on_arc = self.attend(query=Q_i, key=K_i, value=V_i)
-            reduced_grapheme_data.append(reduced_grapheme_on_arc)
-
-        return torch.cat(reduced_grapheme_data, dim=0)
-
-
-    def attend(self, query, key, value):
-            """ A forward pass of the attention memchanism for a single arc.
-
-                query:  Tensor with dimensions: (Grapheme, Feature)
-                key:    Tensor with dimensions: (Grapheme, Feature)
-                value:  Tensor with dimensions: (Grapheme, Feature)
-            """
-            # Ensure that the key and query are the same dimensions
-            num_graphemes = key.shape[0]
-            assert query.shape[0] == num_graphemes
-            num_features = key.shape[1]
-            assert query.shape[1] == num_features
-
-            ## Compute compatability function and normalise across the grapheme dimension
-            # transpose(Query):      (Feature, Grapheme)
-            # Key:                   (Grapheme, Feature)
-            # Learnable Matrix (A):  (Feature, Feature)
-            # Attention Weights (e): (Grapheme, Grapheme)
-            # W = q' A k or W = q' k
-            attention_weights = torch.mm(query, key.transpose(0, 1))
-
-            if self.scale:
-                attention_weights = attention_weights / math.sqrt(num_features)
-
-            # Softmax normalisation of attention weights over the grapheme sequence
-            # Only take the diagonal - Shape: (1, Grapheme)
-            attention_weights = torch.exp(attention_weights) * \
-                torch.autograd.Variable(torch.eye((num_graphemes)), requires_grad=False)
-            attention_weights = torch.sum(attention_weights, dim=-1)[None, :]
-            attention_weights = attention_weights / attention_weights.sum(dim=-1)
-
-            ## Weight value to compress to a fixed form
-            # attention_weights: (1, Grapheme)
-            # value:             (Grapheme, Feature)
-            # context:           (1, Feature)
-            context = torch.mm(attention_weights, value)
-            context = context.view(1, num_features)
-            assert context.shape == torch.Size([1, num_features]), "The context is not of the expected dimensions"
-            return context
-
-
-    def transformer_style_attention(self, query, key, value):
-            """ A forward pass of the attention memchanism for a single arc.
-                Uses the outer product to get the interactions between each grapheme and the
-                the full sentence.
-            
-                query:  Tensor with dimensions: (Arc, Grapheme, Feature)
-                key':    Tensor with dimensions: (Arc, Feature, Grapheme)
-                value:  Tensor with dimensions: (Arc, Grapheme, Feature)
-            """
-            # Ensure that the key and query are the same dimensions
-            num_graphemes = key.shape[1]
-            assert query.shape[1] == num_graphemes
-            num_features = key.shape[2]
-            assert query.shape[2] == num_features
-
-            # Compute compatability function and normalise across the grapheme dimension
-            # Query:                 (Arc, Grapheme, Feature)
-            # transpose(Key):        (Arc, Feature, Grapheme)
-            # Learnable Matrix (A):  (Arc, Feature, Feature)
-            # Attention Weights (e): (Arc, Grapheme, Grapheme)
-            # W = q A k' or W = q k'
-            attention_weights = torch.bmm(query, key.transpose(1, 2))
-
-            if self.scale:
-                attention_weights = attention_weights / math.sqrt(num_features)
-
-            # Softmax normalisation of attention weights over the grapheme sequence
-            attention_weights = torch.exp(attention_weights)
-            attention_weights = attention_weights / attention_weights.sum(dim=-1, keepdim=True)
-
-            # Apply dropout and weight value
-            context = torch.bmm(attention_weights, value)
-            return context
-
+        # Passing in the input and hidden state into the model and obtaining outputs
+        out, hidden_state = self.rnn(x, hidden_state)
+               
+        return out, hidden_state
+    
+    def init_hidden_state(self, batch_size):
+        # Generate the first hidden state of zeros
+        return torch.zeros(self.num_layers, batch_size, self.hidden_size)
 
 class Model(nn.Module):
     """Bidirectional LSTM model on lattices."""
@@ -483,7 +396,7 @@ class Model(nn.Module):
         nn.Module.__init__(self)
         self.opt = opt
 
-        if self.opt.combine_method == 'attention':
+        if self.opt.arc_combine_method == 'attention':
             self.attention = Attention(self.opt.hiddenSize + 3,
                                        self.opt.attentionSize,
                                        self.opt.attentionLayers, self.opt.init,
@@ -495,8 +408,13 @@ class Model(nn.Module):
             self.is_graphemic = True
             self.grapheme_attention = LuongAttention(
                 attn_type=self.opt.grapheme_combination,
-                num_features=NUM_FEATURES
+                num_features=self.opt.grapheme_features
             )
+            if self.opts.grapheme_encoding:
+                self.has_grapheme_encoding = True
+                self.grapheme_rnn = GraphemeEncoder(self.opt)
+            else:
+                self.is_graphemic = False
         else:
             self.is_graphemic = False
 
@@ -514,6 +432,10 @@ class Model(nn.Module):
         """Forward pass through the model."""
         # Apply attention over the grapheme information
         if self.is_graphemic:
+
+            if self.has_grapheme_encoding:
+                self.grapheme_rnn.forward(input=, hx=)
+
             reduced_grapheme_info, _ = self.grapheme_attention.forward(
                 key=lattice.grapheme_data,
                 query=lattice.grapheme_data,
@@ -523,7 +445,7 @@ class Model(nn.Module):
             lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
 
         # BiLSTM -> FC(relu) -> LayerOut (sigmoid if not logit)
-        output = self.lstm.forward(lattice, self.opt.combine_method)
+        output = self.lstm.forward(lattice, self.opt.arc_combine_method)
         output = self.dnn.forward(output)
         return output
 
