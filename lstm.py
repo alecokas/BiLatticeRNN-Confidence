@@ -324,7 +324,7 @@ class LuongAttention(torch.nn.Module):
             self.attn = torch.nn.Linear(self.num_features, self.num_features)
         elif self.attn_type == 'concat':
             self.attn = torch.nn.Linear(self.num_features * 2, self.num_features)
-            self.v = torch.nn.Variable(torch.FloatTensor(self.num_features))
+            self.v = Variable(torch.FloatTensor(self.num_features))
 
     def dot_score(self, key, query):
         return torch.sum(key * query, dim=2)
