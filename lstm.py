@@ -372,7 +372,8 @@ class GraphemeEncoder(nn.Module):
             hidden_size=self.hidden_size,
             num_layers=self.num_layers,
             bidirectional=opt.grapheme_bidirectional,
-            batch_first=True
+            batch_first=True,
+            dropout=opt.encoding_dropout
         )
     
     def forward(self, x):

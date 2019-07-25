@@ -71,6 +71,14 @@ class Opts():
             self.args.nEpochs = 2
             self.args.nThreads = 1
 
+        if self.args.grapheme_encoding:
+            assert self.args.encoding_dropout <= 1 and self.args.encoding_dropout >= 0, \
+                'The dropout CLI argument must be a valid ratio'
+            grapheme_encoding_tag = 'E=' + str(self.args.grapheme_arch) + '-' + str(self.args.encoding_dropout)
+        else:
+            self.args.encoding_dropout = 0
+            grapheme_encoding_tag = 'E=None'
+
         # Setup model directory
         self.args.hashKey = self.args.dataset \
                             + '_' + self.args.arch \
@@ -82,7 +90,8 @@ class Opts():
                             + '_' + 'D='+self.args.LRDecay \
                             + '-' + str(self.args.LRDParam) \
                             + '_' + str(lattice_type_tag) \
-                            + '-' + 'F='+str(self.args.grapheme_features) \
+                            + '_' + grapheme_encoding_tag \
+                            + '_' + 'F='+str(self.args.grapheme_features) \
                             + '_' + 'G-C='+str(self.args.grapheme_combination) \
                             + '_' + self.args.suffix
 
@@ -174,6 +183,8 @@ class Opts():
                             choices=['None', 'dot', 'general', 'concat', 'scaled-dot'])
         parser.add_argument('--grapheme-encoding', default=False, action="store_true",
                             help='Use a bidirectional recurrent structure to encode the grapheme information')
+        parser.add_argument('--encoding-dropout', default=0, type=float,
+                            help='The amount of dropout to apply in the bidirectional grapheme encoding')
         parser.add_argument('--grapheme-arch', default='1-10', type=str,
                             help='Grapheme model architecture: num_layers-layer_size')
         # Naming options
