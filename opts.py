@@ -71,6 +71,8 @@ class Opts():
             self.args.nEpochs = 2
             self.args.nThreads = 1
 
+        grapheme_encoding_tag = 'E=' + str(self.args.grapheme_arch) if self.args.grapheme_encoding else 'E=None'
+
         # Setup model directory
         self.args.hashKey = self.args.dataset \
                             + '_' + self.args.arch \
@@ -82,7 +84,8 @@ class Opts():
                             + '_' + 'D='+self.args.LRDecay \
                             + '-' + str(self.args.LRDParam) \
                             + '_' + str(lattice_type_tag) \
-                            + '-' + 'F='+str(self.args.grapheme_features) \
+                            + '_' + grapheme_encoding_tag \
+                            + '_' + 'F='+str(self.args.grapheme_features) \
                             + '_' + 'G-C='+str(self.args.grapheme_combination) \
                             + '_' + self.args.suffix
 
