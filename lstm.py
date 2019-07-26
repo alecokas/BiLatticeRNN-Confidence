@@ -311,20 +311,23 @@ class Attention(nn.Module):
 
 class LuongAttention(torch.nn.Module):
     """ Luong attention layer as defined in: https://arxiv.org/pdf/1508.04025.pdf """
-    def __init__(self, attn_type, num_features):
+    def __init__(self, attn_type, num_features, initialisation):
         """ Initialise the Attention layer """
         super(LuongAttention, self).__init__()
         self.num_features = num_features
         self.attn_type = attn_type
+        self.initialisation = initialisation
+        self.use_bias = True
 
         if self.attn_type not in ['dot', 'general', 'concat', 'scaled-dot']:
             raise ValueError(self.attn_type, "is not an appropriate attention type.")
 
         if self.attn_type == 'general':
-            self.attn = torch.nn.Linear(self.num_features, self.num_features)
+            self.attn = torch.nn.Linear(self.num_features, self.num_features, self.use_bias)
         elif self.attn_type == 'concat':
-            self.attn = torch.nn.Linear(self.num_features * 2, self.num_features)
+            self.attn = torch.nn.Linear(self.num_features * 2, self.num_features, self.use_bias)
             self.v = Variable(torch.FloatTensor(self.num_features))
+        self.initialise_parameters()
 
     def dot_score(self, key, query):
         return torch.sum(key * query, dim=2)
@@ -358,6 +361,12 @@ class LuongAttention(torch.nn.Module):
 
         return context, alpha
 
+    def initialise_parameters(self):
+        """Initialise parameters for all layers."""
+        init_method = getattr(init, self.initialisation)
+        init_method(self.attn.weight.data)
+        if self.use_bias:
+            init.constant(self.attn.bias.data, val=0)
 
 class GraphemeEncoder(nn.Module):
     def __init__(self, opt):
@@ -366,6 +375,8 @@ class GraphemeEncoder(nn.Module):
         # Defining some parameters
         self.hidden_size = opt.grapheme_hidden_size
         self.num_layers = opt.grapheme_num_layers
+        self.initialisation = opt.init
+        self.use_bias = True
 
         self.rnn = nn.RNN(
             input_size=opt.grapheme_features,
@@ -373,21 +384,30 @@ class GraphemeEncoder(nn.Module):
             num_layers=self.num_layers,
             bidirectional=opt.grapheme_bidirectional,
             batch_first=True,
-            dropout=opt.encoding_dropout
+            dropout=opt.encoding_dropout,
+            bias=True
         )
-    
+        self.initialise_parameters()
+
     def forward(self, x):
         num_arcs = x.size(0)
         # Initializing hidden state for the first grapheme
         hidden_state = self.init_hidden_state(num_arcs)
 
         # Passing in the input and hidden state into the model and obtaining outputs
-        out, hidden_state = self.rnn(x)
+        out, hidden_state = self.rnn(x, hidden_state)
         return out, hidden_state
     
     def init_hidden_state(self, batch_size):
         # Generate the first hidden state of zeros
         return torch.zeros(self.num_layers, batch_size, self.hidden_size)
+
+    def initialise_parameters(self):
+        """Initialise parameters for all layers."""
+        init_method = getattr(init, self.initialisation)
+        init_method(self.rnn.weight.data)
+        if self.use_bias:
+            init.constant(self.rnn.bias.data, val=0)
 
 class Model(nn.Module):
     """Bidirectional LSTM model on lattices."""
@@ -413,13 +433,15 @@ class Model(nn.Module):
                 self.grapheme_rnn = GraphemeEncoder(self.opt)
                 self.grapheme_attention = LuongAttention(
                     attn_type=self.opt.grapheme_combination,
-                    num_features=self.opt.grapheme_hidden_size * 2
+                    num_features=self.opt.grapheme_hidden_size * 2,
+                    initialisation=self.opt.init
                 )
                 self.has_grapheme_encoding = True
             else:
                 self.grapheme_attention = LuongAttention(
                     attn_type=self.opt.grapheme_combination,
-                    num_features=self.opt.grapheme_features
+                    num_features=self.opt.grapheme_features,
+                    initialisation=self.opt.init
                 )
                 self.has_grapheme_encoding = False
         else:
