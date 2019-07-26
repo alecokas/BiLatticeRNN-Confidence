@@ -375,7 +375,7 @@ class GraphemeEncoder(nn.Module):
         # Defining some parameters
         self.hidden_size = opt.grapheme_hidden_size
         self.num_layers = opt.grapheme_num_layers
-        self.initialisation = opt.init
+        self.initialisation = opt.init_grapheme
         self.use_bias = True
 
         self.rnn = nn.RNN(
@@ -392,10 +392,10 @@ class GraphemeEncoder(nn.Module):
     def forward(self, x):
         num_arcs = x.size(0)
         # Initializing hidden state for the first grapheme
-        hidden_state = self.init_hidden_state(num_arcs)
+        # hidden_state = self.init_hidden_state(num_arcs)
 
         # Passing in the input and hidden state into the model and obtaining outputs
-        out, hidden_state = self.rnn(x, hidden_state)
+        out, hidden_state = self.rnn(x)
         return out, hidden_state
     
     def init_hidden_state(self, batch_size):
@@ -405,9 +405,11 @@ class GraphemeEncoder(nn.Module):
     def initialise_parameters(self):
         """Initialise parameters for all layers."""
         init_method = getattr(init, self.initialisation)
-        init_method(self.rnn.weight.data)
+        init_method(self.rnn.weight_ih_l0.data)
+        init_method(self.rnn.weight_hh_l0.data)
         if self.use_bias:
-            init.constant(self.rnn.bias.data, val=0)
+            init.constant(self.rnn.bias_ih_l0.data, val=0)
+            init.constant(self.rnn.bias_hh_l0.data, val=0)
 
 class Model(nn.Module):
     """Bidirectional LSTM model on lattices."""
@@ -420,7 +422,7 @@ class Model(nn.Module):
         if self.opt.arc_combine_method == 'attention':
             self.attention = Attention(self.opt.hiddenSize + 3,
                                        self.opt.attentionSize,
-                                       self.opt.attentionLayers, self.opt.init,
+                                       self.opt.attentionLayers, self.opt.init_word,
                                        use_bias=True)
         else:
             self.attention = None
@@ -434,14 +436,14 @@ class Model(nn.Module):
                 self.grapheme_attention = LuongAttention(
                     attn_type=self.opt.grapheme_combination,
                     num_features=self.opt.grapheme_hidden_size * 2,
-                    initialisation=self.opt.init
+                    initialisation=self.opt.init_grapheme
                 )
                 self.has_grapheme_encoding = True
             else:
                 self.grapheme_attention = LuongAttention(
                     attn_type=self.opt.grapheme_combination,
                     num_features=self.opt.grapheme_features,
-                    initialisation=self.opt.init
+                    initialisation=self.opt.init_grapheme
                 )
                 self.has_grapheme_encoding = False
         else:
@@ -455,7 +457,7 @@ class Model(nn.Module):
 
         self.dnn = DNN(num_directions * self.opt.hiddenSize,
                        self.opt.linearSize, 1, self.opt.nFCLayers,
-                       self.opt.init, use_bias=True, logit=True)
+                       self.opt.init_word, use_bias=True, logit=True)
 
     def forward(self, lattice):
         """Forward pass through the model."""

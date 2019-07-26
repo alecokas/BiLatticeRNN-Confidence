@@ -166,7 +166,7 @@ class Opts():
                             help='Optimizer type',
                             choices=['SGD', 'Adam'])
         # Word level model options
-        parser.add_argument('--init', default='kaiming_normal', type=str,
+        parser.add_argument('--init-word', default='kaiming_normal', type=str,
                             help='Initialisation method for linear layers',
                             choices=['uniform', 'normal',
                                      'xavier_uniform', 'xavier_normal',
@@ -178,6 +178,11 @@ class Opts():
                             help='method for combining edges',
                             choices=['mean', 'max', 'posterior', 'attention'])
         # Grapheme level model options
+        parser.add_argument('--init-grapheme', default='kaiming_normal', type=str,
+                            help='Initialisation method for linear layers',
+                            choices=['uniform', 'normal',
+                                     'xavier_uniform', 'xavier_normal',
+                                     'kaiming_uniform', 'kaiming_normal'])
         parser.add_argument('--grapheme-combination', default='None', type=str,
                             help='The method to use for grapheme combination',
                             choices=['None', 'dot', 'general', 'concat', 'scaled-dot'])
