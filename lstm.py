@@ -324,10 +324,11 @@ class LuongAttention(torch.nn.Module):
 
         if self.attn_type == 'general':
             self.attn = torch.nn.Linear(self.num_features, self.num_features, self.use_bias)
+            self.initialise_parameters()
         elif self.attn_type == 'concat':
             self.attn = torch.nn.Linear(self.num_features * 2, self.num_features, self.use_bias)
-            self.v = Variable(torch.FloatTensor(self.num_features))
-        self.initialise_parameters()
+            self.v = Variable(torch.randn(self.num_features))
+            self.initialise_parameters()
 
     def dot_score(self, key, query):
         return torch.sum(key * query, dim=2)
@@ -358,7 +359,6 @@ class LuongAttention(torch.nn.Module):
         alpha = F.softmax(attn_energies, dim=1).unsqueeze(1)
         # The context is the result of the weighted summation
         context = torch.bmm(alpha, val)
-
         return context, alpha
 
     def initialise_parameters(self):

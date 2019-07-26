@@ -36,5 +36,5 @@ def plot(directory, onebest=False):
     axis.spines['right'].set_visible(False)
     axis.set_xlabel('Epoch')
     axis.set_ylabel('Cross Entropy')
-    plt.savefig(os.path.join(directory, 'plot.pdf'), bbox_inches='tight')
+    plt.savefig(os.path.join(directory, '{}-plot.pdf'.format(directory.split('/')[-1])), bbox_inches='tight')
     plt.close()
