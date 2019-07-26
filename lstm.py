@@ -390,14 +390,10 @@ class GraphemeEncoder(nn.Module):
         self.initialise_parameters()
 
     def forward(self, x):
-        num_arcs = x.size(0)
-        # Initializing hidden state for the first grapheme
-        hidden_state = self.init_hidden_state(num_arcs)
-
-        # Passing in the input and hidden state into the model and obtaining outputs
-        out, hidden_state = self.rnn(x, hidden_state)
+        # Passing in the input into the model and obtaining outputs
+        out, hidden_state = self.rnn(x)
         return out, hidden_state
-    
+
     def init_hidden_state(self, batch_size):
         # Generate the first hidden state of zeros
         return torch.zeros(self.num_layers, batch_size, self.hidden_size)
@@ -405,9 +401,12 @@ class GraphemeEncoder(nn.Module):
     def initialise_parameters(self):
         """Initialise parameters for all layers."""
         init_method = getattr(init, self.initialisation)
-        init_method(self.rnn.weight.data)
+        init_method(self.rnn.weight_ih_l0.data)
+        init_method(self.rnn.weight_hh_l0.data)
         if self.use_bias:
-            init.constant(self.rnn.bias.data, val=0)
+            init.constant(self.rnn.bias_ih_l0.data, val=0)
+            init.constant(self.rnn.bias_hh_l0.data, val=0)
+
 
 class Model(nn.Module):
     """Bidirectional LSTM model on lattices."""
