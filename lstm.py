@@ -390,14 +390,10 @@ class GraphemeEncoder(nn.Module):
         self.initialise_parameters()
 
     def forward(self, x):
-        num_arcs = x.size(0)
-        # Initializing hidden state for the first grapheme
-        # hidden_state = self.init_hidden_state(num_arcs)
-
-        # Passing in the input and hidden state into the model and obtaining outputs
+        # Passing in the input into the model and obtaining outputs
         out, hidden_state = self.rnn(x)
         return out, hidden_state
-    
+
     def init_hidden_state(self, batch_size):
         # Generate the first hidden state of zeros
         return torch.zeros(self.num_layers, batch_size, self.hidden_size)
@@ -462,28 +458,24 @@ class Model(nn.Module):
     def forward(self, lattice):
         """Forward pass through the model."""
         # Apply attention over the grapheme information
-        #print('self.is_graphemic: {}'.format(self.is_graphemic))
         if self.is_graphemic:
 
             if self.has_grapheme_encoding:
                 grapheme_encoding, hidden_state = self.grapheme_rnn.forward(lattice.grapheme_data)
-                #print('grapheme_encoding.shape: {}'.format(grapheme_encoding.shape))
                 reduced_grapheme_info, _ = self.grapheme_attention.forward(
                     key=grapheme_encoding,
                     query=grapheme_encoding,
                     val=grapheme_encoding
                 )
             else:
-                #print('Flat attention starting')
                 reduced_grapheme_info, _ = self.grapheme_attention.forward(
                     key=lattice.grapheme_data,
                     query=lattice.grapheme_data,
                     val=lattice.grapheme_data
                 )
-            #print('reduced_grapheme_info.shape: {}'.format(reduced_grapheme_info.shape))
             reduced_grapheme_info = reduced_grapheme_info.squeeze(1)
             lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
-            #print('lattice.edges.shape: {}'.format(lattice.edges.shape))
+
         # BiLSTM -> FC(relu) -> LayerOut (sigmoid if not logit)
         output = self.lstm.forward(lattice, self.opt.arc_combine_method)
         output = self.dnn.forward(output)
