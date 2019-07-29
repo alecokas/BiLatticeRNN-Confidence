@@ -319,10 +319,10 @@ class LuongAttention(torch.nn.Module):
         self.initialisation = initialisation
         self.use_bias = True
 
-        if self.attn_type not in ['dot', 'general', 'concat', 'scaled-dot']:
+        if self.attn_type not in ['dot', 'mult', 'concat', 'scaled-dot']:
             raise ValueError(self.attn_type, "is not an appropriate attention type.")
 
-        if self.attn_type == 'general':
+        if self.attn_type == 'mult':
             self.attn = torch.nn.Linear(self.num_features, self.num_features, self.use_bias)
             self.initialise_parameters()
         elif self.attn_type == 'concat':
@@ -333,7 +333,7 @@ class LuongAttention(torch.nn.Module):
     def dot_score(self, key, query):
         return torch.sum(key * query, dim=2)
 
-    def general_score(self, key, query):
+    def mult_score(self, key, query):
         energy = self.attn(query)
         return torch.sum(key * energy, dim=2)
 
@@ -346,8 +346,8 @@ class LuongAttention(torch.nn.Module):
             key, query, val are of the tensor form: (Arcs, Graphemes, Features)
         """
         # Calculate the attention weights (alpha) based on the given attention type
-        if self.attn_type == 'general':
-            attn_energies = self.general_score(key, query)
+        if self.attn_type == 'mult':
+            attn_energies = self.mult_score(key, query)
         elif self.attn_type == 'concat':
             attn_energies = self.concat_score(key, query)
         elif self.attn_type == 'dot':
