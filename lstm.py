@@ -398,8 +398,18 @@ class GraphemeEncoder(nn.Module):
                 dropout=opt.encoding_dropout,
                 bias=True
             )
+        elif opt.encoder_type == 'GRU':
+            self.encoder = nn.GRU(
+                input_size=opt.grapheme_features,
+                hidden_size=self.hidden_size,
+                num_layers=self.num_layers,
+                bidirectional=opt.grapheme_bidirectional,
+                batch_first=True,
+                dropout=opt.encoding_dropout,
+                bias=True
+            )
         else:
-            raise ValueError('Unexpected encoder type: Got {} but expected RNN or LSTM'.format(opt.encoder_type))
+            raise ValueError('Unexpected encoder type: Got {} but expected RNN, GRU, or LSTM'.format(opt.encoder_type))
 
 
         self.initialise_parameters()
