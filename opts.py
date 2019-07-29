@@ -74,7 +74,7 @@ class Opts():
         if self.args.grapheme_encoding:
             assert self.args.encoding_dropout <= 1 and self.args.encoding_dropout >= 0, \
                 'The dropout CLI argument must be a valid ratio'
-            grapheme_encoding_tag = 'E=' + str(self.args.grapheme_arch) + '-' + str(self.args.encoding_dropout)
+            grapheme_encoding_tag = 'E=' + str(self.args.grapheme_arch) + '-' + str(self.args.encoding_dropout) + '-' + str(self.args.encoder_type)
         else:
             self.args.encoding_dropout = 0
             grapheme_encoding_tag = 'E=None'
@@ -188,6 +188,9 @@ class Opts():
                             choices=['None', 'dot', 'general', 'concat', 'scaled-dot'])
         parser.add_argument('--grapheme-encoding', default=False, action="store_true",
                             help='Use a bidirectional recurrent structure to encode the grapheme information')
+        parser.add_argument('--encoder-type', default='rnn', type=str,
+                            help='The type of bidirectional recurrent encoder to use for grapheme combination',
+                            choices=['RNN', 'LSTM'])
         parser.add_argument('--encoding-dropout', default=0, type=float,
                             help='The amount of dropout to apply in the bidirectional grapheme encoding')
         parser.add_argument('--grapheme-arch', default='1-10', type=str,

@@ -378,20 +378,35 @@ class GraphemeEncoder(nn.Module):
         self.initialisation = opt.init_grapheme
         self.use_bias = True
 
-        self.rnn = nn.RNN(
-            input_size=opt.grapheme_features,
-            hidden_size=self.hidden_size,
-            num_layers=self.num_layers,
-            bidirectional=opt.grapheme_bidirectional,
-            batch_first=True,
-            dropout=opt.encoding_dropout,
-            bias=True
-        )
+        if opt.encoder_type == 'RNN':
+            self.encoder = nn.RNN(
+                input_size=opt.grapheme_features,
+                hidden_size=self.hidden_size,
+                num_layers=self.num_layers,
+                bidirectional=opt.grapheme_bidirectional,
+                batch_first=True,
+                dropout=opt.encoding_dropout,
+                bias=True
+            )
+        elif opt.encoder_type == 'LSTM':
+            self.encoder = nn.LSTM(
+                input_size=opt.grapheme_features,
+                hidden_size=self.hidden_size,
+                num_layers=self.num_layers,
+                bidirectional=opt.grapheme_bidirectional,
+                batch_first=True,
+                dropout=opt.encoding_dropout,
+                bias=True
+            )
+        else:
+            raise ValueError('Unexpected encoder type: Got {} but expected RNN or LSTM'.format(opt.encoder_type))
+
+
         self.initialise_parameters()
 
     def forward(self, x):
         # Passing in the input into the model and obtaining outputs
-        out, hidden_state = self.rnn(x)
+        out, hidden_state = self.encoder(x)
         return out, hidden_state
 
     def init_hidden_state(self, batch_size):
@@ -401,11 +416,11 @@ class GraphemeEncoder(nn.Module):
     def initialise_parameters(self):
         """Initialise parameters for all layers."""
         init_method = getattr(init, self.initialisation)
-        init_method(self.rnn.weight_ih_l0.data)
-        init_method(self.rnn.weight_hh_l0.data)
+        init_method(self.encoder.weight_ih_l0.data)
+        init_method(self.encoder.weight_hh_l0.data)
         if self.use_bias:
-            init.constant(self.rnn.bias_ih_l0.data, val=0)
-            init.constant(self.rnn.bias_hh_l0.data, val=0)
+            init.constant(self.encoder.bias_ih_l0.data, val=0)
+            init.constant(self.encoder.bias_hh_l0.data, val=0)
 
 class Model(nn.Module):
     """Bidirectional LSTM model on lattices."""
@@ -428,7 +443,7 @@ class Model(nn.Module):
 
             if self.opt.grapheme_encoding:
                 #print('self.opt.grapheme_encoding: {}'.format(self.opt.grapheme_encoding))
-                self.grapheme_rnn = GraphemeEncoder(self.opt)
+                self.grapheme_encoder = GraphemeEncoder(self.opt)
                 self.grapheme_attention = LuongAttention(
                     attn_type=self.opt.grapheme_combination,
                     num_features=self.opt.grapheme_hidden_size * 2,
@@ -461,7 +476,7 @@ class Model(nn.Module):
         if self.is_graphemic:
 
             if self.has_grapheme_encoding:
-                grapheme_encoding, hidden_state = self.grapheme_rnn.forward(lattice.grapheme_data)
+                grapheme_encoding, hidden_state = self.grapheme_encoder.forward(lattice.grapheme_data)
                 reduced_grapheme_info, _ = self.grapheme_attention.forward(
                     key=grapheme_encoding,
                     query=grapheme_encoding,
