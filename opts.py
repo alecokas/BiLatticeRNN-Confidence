@@ -190,7 +190,7 @@ class Opts():
                             help='Use a bidirectional recurrent structure to encode the grapheme information')
         parser.add_argument('--encoder-type', default='RNN', type=str,
                             help='The type of bidirectional recurrent encoder to use for grapheme combination',
-                            choices=['RNN', 'LSTM'])
+                            choices=['RNN', 'GRU', 'LSTM'])
         parser.add_argument('--encoding-dropout', default=0, type=float,
                             help='The amount of dropout to apply in the bidirectional grapheme encoding')
         parser.add_argument('--grapheme-arch', default='1-10', type=str,
