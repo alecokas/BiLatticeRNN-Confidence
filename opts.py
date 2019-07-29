@@ -185,10 +185,10 @@ class Opts():
                                      'kaiming_uniform', 'kaiming_normal'])
         parser.add_argument('--grapheme-combination', default='None', type=str,
                             help='The method to use for grapheme combination',
-                            choices=['None', 'dot', 'general', 'concat', 'scaled-dot'])
+                            choices=['None', 'dot', 'mult', 'concat', 'scaled-dot'])
         parser.add_argument('--grapheme-encoding', default=False, action="store_true",
                             help='Use a bidirectional recurrent structure to encode the grapheme information')
-        parser.add_argument('--encoder-type', default='rnn', type=str,
+        parser.add_argument('--encoder-type', default='RNN', type=str,
                             help='The type of bidirectional recurrent encoder to use for grapheme combination',
                             choices=['RNN', 'LSTM'])
         parser.add_argument('--encoding-dropout', default=0, type=float,
