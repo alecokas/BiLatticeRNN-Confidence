@@ -16,7 +16,7 @@ from torch.nn import init
 from utils import Dimension
 
 
-NUM_FEATURES = 5
+DURATION_IDX = 50
 
 
 class LSTMCell(nn.LSTMCell):
@@ -329,6 +329,10 @@ class LuongAttention(torch.nn.Module):
             self.attn = torch.nn.Linear(self.num_features * 2, self.num_features, self.use_bias)
             self.v = Variable(torch.randn(self.num_features))
             self.initialise_parameters()
+        elif self.attn_type == 'mult-enc-key':
+            self.key_encoder = torch.nn.Linear(self.num_features + 1, self.num_features, self.use_bias)
+            self.attn = torch.nn.Linear(self.num_features, self.num_features, self.use_bias)
+            self.initialise_parameters()
 
     def dot_score(self, key, query):
         return torch.sum(key * query, dim=2)
@@ -354,6 +358,9 @@ class LuongAttention(torch.nn.Module):
             attn_energies = self.dot_score(key, query)
         elif self.attn_type == 'scaled-dot':
             attn_energies = self.dot_score(key, query) / self.num_features
+        if self.attn_type == 'mult-enc-key':
+            encoded_key = self.key_encoder(key)
+            attn_energies = self.mult_score(encoded_key, query)
 
         # Alpha is the softmax normalized probability scores (with added dimension)
         alpha = F.softmax(attn_energies, dim=1).unsqueeze(1)
@@ -367,6 +374,11 @@ class LuongAttention(torch.nn.Module):
         init_method(self.attn.weight.data)
         if self.use_bias:
             init.constant(self.attn.bias.data, val=0)
+
+        if self.attn_type == 'mult-enc-key':
+            init_method(self.key_encoder.weight.data)
+            if self.use_bias:
+                init.constant(self.key_encoder.bias.data, val=0)
 
 class GraphemeEncoder(nn.Module):
     def __init__(self, opt):
@@ -488,13 +500,13 @@ class Model(nn.Module):
             if self.has_grapheme_encoding:
                 grapheme_encoding, hidden_state = self.grapheme_encoder.forward(lattice.grapheme_data)
                 reduced_grapheme_info, _ = self.grapheme_attention.forward(
-                    key=grapheme_encoding,
+                    key=self.create_key(lattice, grapheme_encoding),
                     query=grapheme_encoding,
                     val=grapheme_encoding
                 )
             else:
                 reduced_grapheme_info, _ = self.grapheme_attention.forward(
-                    key=lattice.grapheme_data,
+                    key=self.create_key(lattice, grapheme_encoding),
                     query=lattice.grapheme_data,
                     val=lattice.grapheme_data
                 )
@@ -505,6 +517,26 @@ class Model(nn.Module):
         output = self.lstm.forward(lattice, self.opt.arc_combine_method)
         output = self.dnn.forward(output)
         return output
+
+    def create_key(self, lattice, grapheme_encoding):
+        """ Concat features to create a key for grapheme attention"""
+        if self.grapheme_attention.attn_type == 'mult-enc-key':
+            if self.has_grapheme_encoding:
+                if grapheme_encoding is None:
+                    raise Exception('No grapheme encoding to use for a key')
+                print('lattice.edges.shape: {}'.format(lattice.edges.shape))
+                word_duration = lattice.edges[:, DURATION_IDX]
+                key = torch.cat((grapheme_encoding, word_duration), dim=1)
+            else:
+                key = torch.cat((lattice.grapheme_data, word_duration), dim=1)
+        else:
+            if self.has_grapheme_encoding:
+                if grapheme_encoding is None:
+                    raise Exception('No grapheme encoding to use for a key')
+                key = grapheme_encoding
+            else:
+                key = lattice.grapheme_data
+        return key
 
 def create_model(opt):
     """New Model object."""

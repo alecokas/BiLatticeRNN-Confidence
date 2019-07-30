@@ -1,6 +1,6 @@
 """`lattice.py` defines:
     * Lattice object containing node and edge information
-    * A in-palce reverse function.
+    * A in-place reverse function.
 """
 
 import sys
