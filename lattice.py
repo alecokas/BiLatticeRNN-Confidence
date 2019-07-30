@@ -9,7 +9,7 @@ import numpy as np
 class Lattice:
     """Lattice object."""
 
-    def __init__(self, path, mean=None, std=None):
+    def __init__(self, path, mean=None, std=None, lattice_type='grapheme'):
         """Lattice object.
 
         Arguments:
@@ -25,7 +25,10 @@ class Lattice:
         self.std = std
         self.child_dict = None
         self.parent_dict = None
+        self.edges = None
+        self.mask = None
         self.ignore = []
+        self.is_grapheme = True if lattice_type == 'grapheme' else False
         self.load()
 
     def load(self):
@@ -37,6 +40,10 @@ class Lattice:
         self.edges = data['edge_data']
         self.child_dict = data['child_2_parent'].item()
         self.parent_dict = data['parent_2_child'].item()
+
+        if self.is_grapheme:
+            self.grapheme_data = data['grapheme_data']
+
         # Backward compatibility
         try:
             self.ignore = list(data['ignore'])
@@ -47,26 +54,29 @@ class Lattice:
         self.edge_num = self.edges.shape[0]
 
         if self.edge_num > 0:
-            self.feature_dim = self.edges.shape[1]
             if self.mean is not None:
-                if self.mean.shape[1] == self.feature_dim:
+                if self.mean.shape[1] == self.feature_dim():
                     self.edges = self.edges - self.mean
                 else:
                     print("Dimension of mean vector is inconsistent with data.")
                     sys.exit(1)
             if self.std is not None:
-                if self.std.shape[1] == self.feature_dim:
+                if self.std.shape[1] == self.feature_dim():
                     self.edges = self.edges / self.std
                 else:
                     print("Dimension of std vector is inconsistent with data.")
                     sys.exit(1)
         else:
-            self.feature_dim = None
+            raise Exception('All lattices must have a definite positive number of nodes.')
 
     def reverse(self):
         """Reverse the graph."""
         self.nodes.reverse()
         self.child_dict, self.parent_dict = self.parent_dict, self.child_dict
+
+
+    def feature_dim(self):
+        return self.edges.shape[1]
 
 class Target:
     """Target object."""

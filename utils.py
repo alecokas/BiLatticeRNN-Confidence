@@ -1,5 +1,6 @@
 """A range of utility functions."""
 
+from enum import IntEnum
 import os
 import sys
 
@@ -38,9 +39,17 @@ def check_dir(*args):
 
 def print_options(args):
     """Display all arguments, args is a object from argparse."""
+    output_list = []
     print_color_msg('==> All options are displayed below:')
     for arg in vars(args):
-        print("".ljust(4) + "--{0:20}{1}".format(arg, getattr(args, arg)))
+        line = "".ljust(4) + "--{0:20}{1}".format(arg, getattr(args, arg))
+        output_list.append(line)
+        print(line)
+
+    args_file_path = os.path.join(args.resume, 'opts.txt')
+    remove_file(args_file_path)
+    with open(args_file_path, 'a') as args_file:
+            args_file.write('\n'.join(output_list))
 
 def color_msg(msg):
     """Return colored message."""
@@ -49,3 +58,15 @@ def color_msg(msg):
 def print_color_msg(msg):
     """Print colored message."""
     print("\033[38;5;108m%s\033[0m" %(msg))
+
+def remove_file(file_path):
+    try:
+        os.remove(file_path)
+    except OSError:
+        pass
+
+
+class Dimension(IntEnum):
+    arc = 0
+    grapheme = 1
+    feature = 2

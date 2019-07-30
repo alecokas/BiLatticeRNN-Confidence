@@ -1,6 +1,8 @@
-# Bi-directional Lattice Recurrent Neural Networks for Confidence Estimation
+# Building on the work of BiLatRNN for confidence estimation
 
-This repository is the code used in our paper:
+This repo is a work in progress of my ongoing efforts to introduce grapheme level information to enrich the arc level lattice information.
+
+Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation is documented in this paper:
 
 >**[Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation](https://arxiv.org/abs/1810.13024)**
 >
@@ -8,7 +10,7 @@ This repository is the code used in our paper:
 >
 >Submitted to ICASSP 2019
 
-## Model
+## The original BiLatRNN model
 
 In short, this model is an extension of classical LSTM network that runs on linear sequences to **BiCNRNN** that runs on *confusion networks* (a.k.a. sausages) or **BiLatRNN** that runs on *lattices*.
 
@@ -20,7 +22,7 @@ one-best paths                  |  lattices
 :------------------------------:|:------------------------------:
 ![onebest](fig/pr_onebest.png)  |  ![lattice](fig/pr_lattice.png)
 
-For more details, please refer to the [paper](https://arxiv.org/pdf/1810.13024.pdf) or the [thesis](http://liqiujia.com/papers/meng_thesis.pdf).
+For more details on BiLatRNN, please refer to the [paper](https://arxiv.org/pdf/1810.13024.pdf) or the [thesis](http://liqiujia.com/papers/meng_thesis.pdf).
 
 ## Usage
 
@@ -35,16 +37,17 @@ For more details, please refer to the [paper](https://arxiv.org/pdf/1810.13024.p
 
 ### Commands
 
-To train the model,
+To train the model on CUED servers,
 
 ```bash
+export PYTHONPATH=$PYTHONPATH:$PWD
 OMP_NUM_THREADS=1 python3 main.py
 ```
 
 For detailed options,
 
 ```bash
-python3 main.py --help
+python main.py --help
 ```
 
 Note that the environment variable `OMP_NUM_THREADS` is essential for CPU parallelisation.
@@ -59,7 +62,7 @@ root/
   |-- data/
   |     |
   |     |-- lattices/
-  |     |-- target/
+  |     |-- target/ (or target_overlap_XX for overlap specific targets)
   |     |   train.txt
   |     |   train_debug.txt (if in debug mode)
   |     |   cv.txt
@@ -67,7 +70,7 @@ root/
   |     |   stats.npz
   |
   |-- exp/
-  |     |-- (saved models)
+  |     |-- (saved and generated models)
   |     |-- ...
 ```
 
@@ -77,8 +80,9 @@ In the `data/` directory:
   * `topo_order` - a list of node indices that follows a topological order;
   * `child_2_parent` - a dictionary that maps from a node index to a dictionary, whose key is the index of the parent node and the value is the index of the connecting edge for lattices or a list indices of the connecting edges for confusion networks. This is used for the forward recursion;
   * `parent_2_child` – a dictionary that maps from a node index to a dictionary, whose key is the index of the child node and the value is the index of the connecting edge for lattices or a list indices of the connecting edges for confusion networks. This is used for the backward recursion;
-  * `edge_data` – a numpy 2d array (matrix) containing all relevant information from the source file where the row index is the edge index. For an arc in a lattice, the information could include the word, the start time and the end time, LM and AM scores. For an arc in a confusion network, the arc posterior probability, the start and the end time should be available;
+  * `edge_data` – a numpy 2D array (matrix) containing all relevant information from the source file where the row index is the edge index. For an arc in a lattice, the information could include the word, the start time and the end time, LM and AM scores. For an arc in a confusion network, the arc posterior probability, the start and the end time should be available;
   * `ignore` – a list of edge indices whose corresponding word is one of the following `<s>, </s>, !NULL, <hes>`, which are due to be skipped during training of the network.
+  * `grapheme_data` - a numpy array of arrays containing grapheme information in the form of a 4D grapheme embedding and the grapheme durations.
 
 * `target/` contains the pre-processed training targets which correspond to the ones in `lattices/`. They are also stored in `.npz` format. Each one has the following attributes:
   * `target` - a list of target confidence scores for each arc in the corresponding lattice, with each element being either 0(incorrect) or 1(correct);

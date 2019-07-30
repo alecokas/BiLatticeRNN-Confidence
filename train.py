@@ -54,7 +54,7 @@ class Trainer():
         self.optimizer.param_groups[0]['initial_lr'] = \
             self.optim_state['initial_lr']
 
-        # Laerning rate scheduler
+        # Learning rate scheduler
         if opt.LRDecay == 'anneal':
             self.scheduler = optim.lr_scheduler.ExponentialLR(
                 self.optimizer, gamma=opt.LRDParam,
@@ -132,6 +132,8 @@ class Trainer():
             if update:
                 self.optimizer.zero_grad()
             lattice.edges = Variable(torch.from_numpy(lattice.edges).float())
+            if lattice.is_grapheme:
+                lattice.grapheme_data = Variable(torch.from_numpy(lattice.grapheme_data).float())
             target_t = Variable(
                 torch.from_numpy(target.target).float().view(-1, 1))
             output = self.model.forward(lattice)
@@ -220,7 +222,7 @@ class Trainer():
             # Wait until all processes are finished
             for fork in processes:
                 fork.join()
-            # Colelct loss stats
+            # Collect loss stats
             for result in results:
                 batch_loss += result[0][0]
                 batch_count += result[0][1]
@@ -278,7 +280,7 @@ class Trainer():
             # Wait until all processes are finished
             for fork in processes:
                 fork.join()
-            # Colelct loss stats
+            # Collect loss stats
             for result in results:
                 batch_loss += result[0][0]
                 batch_count += result[0][1]
@@ -334,7 +336,7 @@ class Trainer():
             # Wait until all processes are finished
             for fork in processes:
                 fork.join()
-            # Colelct loss stats
+            # Collect loss stats
             for result in results:
                 batch_loss += result[0][0]
                 batch_count += result[0][1]

@@ -5,13 +5,19 @@
     * LatticeRNN model that connects LSTM layers and DNN layers.
 """
 
-import sys
+import math
 import numpy as np
+import sys
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn import functional as F
 from torch.nn import init
+from utils import Dimension
+
+
+NUM_FEATURES = 5
+
 
 class LSTMCell(nn.LSTMCell):
     """Overriding initialization and naming methods of LSTMCell."""
@@ -71,11 +77,11 @@ class LSTM(nn.Module):
                 cell = self.get_cell(layer, direction)
                 cell.reset_parameters()
 
-    def combine_edges(self, method, lattice, hidden, in_edges):
+    def combine_edges(self, combine_method, lattice, hidden, in_edges):
         """Methods for combining hidden states of all incoming edges.
 
         Arguments:
-            method {str} -- choose from 'max', 'mean', 'posterior', 'attention', 'attention_simple'
+            combine_method {str} -- choose from 'max', 'mean', 'posterior', 'attention', 'attention_simple'
             lattice {obj} -- lattice object
             hidden {list} -- each element is a hidden representation
             in_edges {list} -- each element is the index of incoming edges
@@ -91,15 +97,15 @@ class LSTM(nn.Module):
         in_hidden = torch.cat([hidden[i].view(1, -1) for i in in_edges], 0)
         if len(in_edges) == 1:
             return in_hidden
-        elif method == 'max':
+        elif combine_method == 'max':
             posterior = torch.cat([lattice.edges[i, index] for i in in_edges])
             _, max_idx = torch.max(posterior, 0)
             result = in_hidden[max_idx]
             return result
-        elif method == 'mean':
+        elif combine_method == 'mean':
             result = torch.mean(in_hidden, 0, keepdim=True)
             return result
-        elif method == 'posterior':
+        elif combine_method == 'posterior':
             posterior = torch.cat([lattice.edges[i, index] for i in in_edges])
             posterior = posterior*lattice.std[0, index] + lattice.mean[0, index]
             posterior.data.clamp_(min=1e-6)
@@ -109,12 +115,14 @@ class LSTM(nn.Module):
                 sys.exit(1)
             result = torch.mm(posterior.view(1, -1), in_hidden)
             return result
-        elif method == 'attention':
+        elif combine_method == 'attention':
             assert self.attention is not None, "build attention model first."
+            # Posterior of incoming edges
             posterior = torch.cat([lattice.edges[i, index] for i in in_edges]).view(-1, 1)
-            posterior = posterior*lattice.std[0, index] + lattice.mean[0, index]
+            # Undo whitening
+            posterior = posterior * lattice.std[0, index] + lattice.mean[0, index]
             context = torch.cat(
-                (posterior, torch.ones_like(posterior)*torch.mean(posterior),
+                (posterior, torch.ones_like(posterior) * torch.mean(posterior),
                  torch.ones_like(posterior)*torch.std(posterior)), dim=1)
             weights = self.attention.forward(in_hidden, context)
             result = torch.mm(weights, in_hidden)
@@ -122,7 +130,7 @@ class LSTM(nn.Module):
         else:
             raise NotImplementedError
 
-    def _forward_rnn(self, cell, lattice, input_, method, state):
+    def _forward_rnn(self, cell, lattice, input_, combine_method, state):
         """Forward through one layer of LSTM."""
         edge_hidden = [None] * lattice.edge_num
         node_hidden = [None] * lattice.node_num
@@ -132,6 +140,7 @@ class LSTM(nn.Module):
 
         node_hidden[lattice.nodes[0]] = state[0].view(1, -1)
         node_cell[lattice.nodes[0]] = state[1].view(1, -1)
+
         # The incoming and outgoing edges must be:
         # either a list of lists (for confusion network)
         # or a list of ints (for normal lattices)
@@ -146,9 +155,9 @@ class LSTM(nn.Module):
                 else:
                     assert all(isinstance(item, int) for item in in_edges)
                 node_hidden[each_node] = self.combine_edges(
-                    method, lattice, edge_hidden, in_edges)
+                    combine_method, lattice, edge_hidden, in_edges)
                 node_cell[each_node] = self.combine_edges(
-                    method, lattice, edge_cell, in_edges)
+                    combine_method, lattice, edge_cell, in_edges)
 
             # If the node is a parent, compute each outgoing edge states
             if each_node in lattice.parent_dict:
@@ -172,7 +181,7 @@ class LSTM(nn.Module):
         edge_hidden = torch.cat(edge_hidden, 0)
         return edge_hidden, end_node_state
 
-    def forward(self, lattice, method):
+    def forward(self, lattice, combine_method):
         """Complete multi-layer LSTM network."""
         # Set initial states to zero
         h_0 = Variable(lattice.edges.data.new(self.num_directions,
@@ -190,7 +199,7 @@ class LSTM(nn.Module):
                     lattice.reverse()
                 layer_output, (layer_h_n, layer_c_n) = LSTM._forward_rnn(
                     self, cell=cell, lattice=lattice, input_=output,
-                    method=method, state=cur_state)
+                    combine_method=combine_method, state=cur_state)
                 cur_output.append(layer_output)
                 cur_h_n.append(layer_h_n)
                 cur_c_n.append(layer_c_n)
@@ -300,29 +309,128 @@ class Attention(nn.Module):
         output = F.tanh(output)
         return F.softmax(output, dim=1)
 
-class Attention2(nn.Module):
-    def __init__(self, input_size, initialization, use_bias=True):
-        super(Attention2, self).__init__()
-        self.input_size = input_size
-        self.initialization = initialization
-        self.use_bias = use_bias
+class LuongAttention(torch.nn.Module):
+    """ Luong attention layer as defined in: https://arxiv.org/pdf/1508.04025.pdf """
+    def __init__(self, attn_type, num_features, initialisation):
+        """ Initialise the Attention layer """
+        super(LuongAttention, self).__init__()
+        self.num_features = num_features
+        self.attn_type = attn_type
+        self.initialisation = initialisation
+        self.use_bias = True
 
-        self.attention_layer = nn.Linear(input_size, input_size, bias=use_bias)
-        self.context_vector = nn.Parameter(torch.zeros(input_size),
-                                           requires_grad=True)
+        if self.attn_type not in ['dot', 'mult', 'concat', 'scaled-dot']:
+            raise ValueError(self.attn_type, "is not an appropriate attention type.")
 
-    def reset_parameters(self):
-        init_method = getattr(init, self.initialization)
-        init_method(self.context_vector)
-        init_method(self.attention_layer.weight)
-        init.constant(self.attention_layer.bias, val=0)
+        if self.attn_type == 'mult':
+            self.attn = torch.nn.Linear(self.num_features, self.num_features, self.use_bias)
+            self.initialise_parameters()
+        elif self.attn_type == 'concat':
+            self.attn = torch.nn.Linear(self.num_features * 2, self.num_features, self.use_bias)
+            self.v = Variable(torch.randn(self.num_features))
+            self.initialise_parameters()
 
-    def forward(self, x, extension):
-        output = torch.cat((x, extension), dim=1)
-        output = self.attention_layer(output)
-        output = F.tanh(output)
-        output = torch.matmul(output, self.context_vector)
-        return F.softmax(output.view(1, -1), dim=1)
+    def dot_score(self, key, query):
+        return torch.sum(key * query, dim=2)
+
+    def mult_score(self, key, query):
+        energy = self.attn(query)
+        return torch.sum(key * energy, dim=2)
+
+    def concat_score(self, key, query):
+        energy = self.attn(torch.cat((key.expand(query.size(0), -1, -1), query), 2)).tanh()
+        return torch.sum(self.v * energy, dim=2)
+
+    def forward(self, key, query, val):
+        """ Compute and return the attention weights and the result of the weighted sum.
+            key, query, val are of the tensor form: (Arcs, Graphemes, Features)
+        """
+        # Calculate the attention weights (alpha) based on the given attention type
+        if self.attn_type == 'mult':
+            attn_energies = self.mult_score(key, query)
+        elif self.attn_type == 'concat':
+            attn_energies = self.concat_score(key, query)
+        elif self.attn_type == 'dot':
+            attn_energies = self.dot_score(key, query)
+        elif self.attn_type == 'scaled-dot':
+            attn_energies = self.dot_score(key, query) / self.num_features
+
+        # Alpha is the softmax normalized probability scores (with added dimension)
+        alpha = F.softmax(attn_energies, dim=1).unsqueeze(1)
+        # The context is the result of the weighted summation
+        context = torch.bmm(alpha, val)
+        return context, alpha
+
+    def initialise_parameters(self):
+        """Initialise parameters for all layers."""
+        init_method = getattr(init, self.initialisation)
+        init_method(self.attn.weight.data)
+        if self.use_bias:
+            init.constant(self.attn.bias.data, val=0)
+
+class GraphemeEncoder(nn.Module):
+    def __init__(self, opt):
+        nn.Module.__init__(self)
+
+        # Defining some parameters
+        self.hidden_size = opt.grapheme_hidden_size
+        self.num_layers = opt.grapheme_num_layers
+        self.initialisation = opt.init_grapheme
+        self.use_bias = True
+
+        if opt.encoder_type == 'RNN':
+            self.encoder = nn.RNN(
+                input_size=opt.grapheme_features,
+                hidden_size=self.hidden_size,
+                num_layers=self.num_layers,
+                bidirectional=opt.grapheme_bidirectional,
+                batch_first=True,
+                dropout=opt.encoding_dropout,
+                bias=True
+            )
+        elif opt.encoder_type == 'LSTM':
+            self.encoder = nn.LSTM(
+                input_size=opt.grapheme_features,
+                hidden_size=self.hidden_size,
+                num_layers=self.num_layers,
+                bidirectional=opt.grapheme_bidirectional,
+                batch_first=True,
+                dropout=opt.encoding_dropout,
+                bias=True
+            )
+        elif opt.encoder_type == 'GRU':
+            self.encoder = nn.GRU(
+                input_size=opt.grapheme_features,
+                hidden_size=self.hidden_size,
+                num_layers=self.num_layers,
+                bidirectional=opt.grapheme_bidirectional,
+                batch_first=True,
+                dropout=opt.encoding_dropout,
+                bias=True
+            )
+        else:
+            raise ValueError('Unexpected encoder type: Got {} but expected RNN, GRU, or LSTM'.format(opt.encoder_type))
+
+
+        self.initialise_parameters()
+
+    def forward(self, x):
+        # Passing in the input into the model and obtaining outputs
+        out, hidden_state = self.encoder(x)
+        return out, hidden_state
+
+    def init_hidden_state(self, batch_size):
+        # Generate the first hidden state of zeros
+        return torch.zeros(self.num_layers, batch_size, self.hidden_size)
+
+    def initialise_parameters(self):
+        """Initialise parameters for all layers."""
+        init_method = getattr(init, self.initialisation)
+        init_method(self.encoder.weight_ih_l0.data)
+        init_method(self.encoder.weight_hh_l0.data)
+        if self.use_bias:
+            init.constant(self.encoder.bias_ih_l0.data, val=0)
+            init.constant(self.encoder.bias_hh_l0.data, val=0)
 
 class Model(nn.Module):
     """Bidirectional LSTM model on lattices."""
@@ -332,13 +440,35 @@ class Model(nn.Module):
         nn.Module.__init__(self)
         self.opt = opt
 
-        if self.opt.method == 'attention':
+        if self.opt.arc_combine_method == 'attention':
             self.attention = Attention(self.opt.hiddenSize + 3,
                                        self.opt.attentionSize,
-                                       self.opt.attentionLayers, self.opt.init,
+                                       self.opt.attentionLayers, self.opt.init_word,
                                        use_bias=True)
         else:
             self.attention = None
+
+        if self.opt.grapheme_combination != 'None':
+            self.is_graphemic = True
+
+            if self.opt.grapheme_encoding:
+                #print('self.opt.grapheme_encoding: {}'.format(self.opt.grapheme_encoding))
+                self.grapheme_encoder = GraphemeEncoder(self.opt)
+                self.grapheme_attention = LuongAttention(
+                    attn_type=self.opt.grapheme_combination,
+                    num_features=self.opt.grapheme_hidden_size * 2,
+                    initialisation=self.opt.init_grapheme
+                )
+                self.has_grapheme_encoding = True
+            else:
+                self.grapheme_attention = LuongAttention(
+                    attn_type=self.opt.grapheme_combination,
+                    num_features=self.opt.grapheme_features,
+                    initialisation=self.opt.init_grapheme
+                )
+                self.has_grapheme_encoding = False
+        else:
+            self.is_graphemic = False
 
         num_directions = 2 if self.opt.bidirectional else 1
         self.lstm = LSTM(LSTMCell, self.opt.inputSize, self.opt.hiddenSize,
@@ -348,12 +478,31 @@ class Model(nn.Module):
 
         self.dnn = DNN(num_directions * self.opt.hiddenSize,
                        self.opt.linearSize, 1, self.opt.nFCLayers,
-                       self.opt.init, use_bias=True, logit=True)
+                       self.opt.init_word, use_bias=True, logit=True)
 
     def forward(self, lattice):
         """Forward pass through the model."""
-        # BiLSTM -> FC(relu) -> LayerOut(sigmoid if not logit)
-        output = self.lstm.forward(lattice, self.opt.method)
+        # Apply attention over the grapheme information
+        if self.is_graphemic:
+
+            if self.has_grapheme_encoding:
+                grapheme_encoding, hidden_state = self.grapheme_encoder.forward(lattice.grapheme_data)
+                reduced_grapheme_info, _ = self.grapheme_attention.forward(
+                    key=grapheme_encoding,
+                    query=grapheme_encoding,
+                    val=grapheme_encoding
+                )
+            else:
+                reduced_grapheme_info, _ = self.grapheme_attention.forward(
+                    key=lattice.grapheme_data,
+                    query=lattice.grapheme_data,
+                    val=lattice.grapheme_data
+                )
+            reduced_grapheme_info = reduced_grapheme_info.squeeze(1)
+            lattice.edges = torch.cat((lattice.edges, reduced_grapheme_info), dim=1)
+
+        # BiLSTM -> FC(relu) -> LayerOut (sigmoid if not logit)
+        output = self.lstm.forward(lattice, self.opt.arc_combine_method)
         output = self.dnn.forward(output)
         return output
 
