@@ -319,7 +319,7 @@ class LuongAttention(torch.nn.Module):
         self.initialisation = initialisation
         self.use_bias = True
 
-        if self.attn_type not in ['dot', 'mult', 'concat', 'scaled-dot']:
+        if self.attn_type not in ['dot', 'mult', 'concat', 'scaled-dot', 'mult-enc-key']:
             raise ValueError(self.attn_type, "is not an appropriate attention type.")
 
         if self.attn_type == 'mult':
@@ -506,7 +506,7 @@ class Model(nn.Module):
                 )
             else:
                 reduced_grapheme_info, _ = self.grapheme_attention.forward(
-                    key=self.create_key(lattice, grapheme_encoding),
+                    key=self.create_key(lattice, None),
                     query=lattice.grapheme_data,
                     val=lattice.grapheme_data
                 )
@@ -521,11 +521,13 @@ class Model(nn.Module):
     def create_key(self, lattice, grapheme_encoding):
         """ Concat features to create a key for grapheme attention"""
         if self.grapheme_attention.attn_type == 'mult-enc-key':
+            word_duration = lattice.edges[:, DURATION_IDX]
+            print('lattice.edges: {}'.format(lattice.edges.shape))
+            print('word_duration.shape: {}'.format(word_duration.shape))
+            print('lattice.grapheme_data: {}'.format(lattice.grapheme_data.shape))
             if self.has_grapheme_encoding:
                 if grapheme_encoding is None:
                     raise Exception('No grapheme encoding to use for a key')
-                print('lattice.edges.shape: {}'.format(lattice.edges.shape))
-                word_duration = lattice.edges[:, DURATION_IDX]
                 key = torch.cat((grapheme_encoding, word_duration), dim=1)
             else:
                 key = torch.cat((lattice.grapheme_data, word_duration), dim=1)
