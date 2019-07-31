@@ -14,8 +14,8 @@ def pred_ref_lists(file_split, target_dir):
             lattice_name = lattice_path.split('/')[-1]
             target_name = os.path.join(target_dir, lattice_name)
             #utils.check_file(target_name)
-            print('target_name: {}'.format(target_name))
-            if os.path.isfile(os.path.join(target_name)):
+            print('target_name: {}'.format(type(target_name)))
+            if os.path.isfile(target_name):
                 print('In if')
                 target_path_list.append(target_name)
                 lattice_path_list.append(lattice_path)
@@ -41,8 +41,9 @@ def load_eval_data(lattice_path_list, target_path_list):
     return np.array(preds), np.array(refs)
 
 def main(args):
-
-    lattice_path_list, target_path_list = pred_ref_lists(args.file_split, args.target_dir)
+    target_dir = os.path.join(args.root, args.target_dir)
+    split_file = os.path.join(args.root, 'test.txt')
+    lattice_path_list, target_path_list = pred_ref_lists(split_file, target_dir)
     preds, refs = load_eval_data(lattice_path_list, target_path_list)
 
     print(preds)
@@ -67,10 +68,10 @@ def parse_arguments(args_to_parse):
     description = "Run evaluation on baseline numbers"
     parser = argparse.ArgumentParser(description=description)
 
+    parser.add_argument('-f', '--root', required=True, type=str,
+                        help='Path to the directory containing the test.txt file with paths to all processed lattices in the test set.')
     parser.add_argument('-t', '--target-dir', required=True, type=str,
-                        help='Path to the target directory containing *.npz target files')
-    parser.add_argument('-f', '--file-split', required=True, type=str,
-                        help='Path to the file containing paths to all processed lattices in the test set.')
+                        help='Path to the target directory containing *.npz target files - relative to root')
     args = parser.parse_args(args_to_parse)
     return args
 
