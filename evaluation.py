@@ -87,7 +87,7 @@ def plot_roc(fpr, tpr, area, name, dst_dir):
     plt.savefig(os.path.join(dst_dir, 'roc.pdf'), bbox_inches='tight')
     plt.close()
 
-def plot_pr(precision, recall, area, name, dst_dir):
+def plot_pr(precision, recall, area, name, dst_dir=None):
     """Plotting ROC curve.
 
     Arguments:
@@ -97,6 +97,9 @@ def plot_pr(precision, recall, area, name, dst_dir):
         name {str} -- text for the legend
         dst_dir {str} -- output figure directory, file name `roc.pdf`
     """
+    if dst_dir is None:
+        dst_dir = ''
+
     plt.clf()
     plt.figure(figsize=(3, 3))
     plt.rcParams["font.family"] = "Times New Roman"
