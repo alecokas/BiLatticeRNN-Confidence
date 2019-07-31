@@ -11,13 +11,14 @@ def pred_ref_lists(file_split, target_dir):
         lattice_path_list = []
         target_path_list = []
         for lattice_path in test_split_file:
-            # Build lattice list
-            lattice_path_list.append(lattice_path)
             lattice_name = lattice_path.split('/')[-1]
-            # Build target list
             target_name = os.path.join(target_dir, lattice_name)
-            utils.check_file(target_name)
-            target_path_list.append(target_name)
+            #utils.check_file(target_name)
+            print('target_name: {}'.format(target_name))
+            if os.path.isfile(os.path.join(target_name)):
+                print('In if')
+                target_path_list.append(target_name)
+                lattice_path_list.append(lattice_path)
 
     return lattice_path_list, target_path_list
 
@@ -44,6 +45,8 @@ def main(args):
     lattice_path_list, target_path_list = pred_ref_lists(args.file_split, args.target_dir)
     preds, refs = load_eval_data(lattice_path_list, target_path_list)
 
+    print(preds)
+    print(refs)
     nce = evaluation.nce(refs, preds)
     precision, recall, area = evaluation.pr(refs, preds)
     precision_bl, recall_bl, area_bl = evaluation.pr(refs, preds)
