@@ -452,7 +452,6 @@ class Model(nn.Module):
             self.is_graphemic = True
 
             if self.opt.grapheme_encoding:
-                #print('self.opt.grapheme_encoding: {}'.format(self.opt.grapheme_encoding))
                 self.grapheme_encoder = GraphemeEncoder(self.opt)
                 self.grapheme_attention = LuongAttention(
                     attn_type=self.opt.grapheme_combination,
