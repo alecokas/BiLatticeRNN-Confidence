@@ -22,29 +22,33 @@ def pred_ref_lists(file_split, target_dir):
 
     return lattice_path_list, target_path_list
 
-def load_pred(path):
-        a = np.load(path)
-        return a['edge_data'][:,-1].tolist()
-
 def load_ref(path):
+    """ Load the references and arc indices for the one-best. """
     a = np.load(path)
-    return a['target'].tolist()
+    return a['ref'], a['indices']
+
+def load_pred(path, indices):
+    """ Load the posterior predictions for the one-best. """
+    a = np.load(path)
+    return a['edge_data'][indices,-1]
 
 def load_eval_data(lattice_path_list, target_path_list):
     preds = []
     refs = []
     for pred_path, ref_path in zip(lattice_path_list, target_path_list):
-        pred = load_pred(pred_path)
-        preds.append(pred)
-        ref = load_ref(ref_path)
+        ref, indices = load_ref(ref_path)
         refs.append(ref)
-    return np.array(preds), np.array(refs)
+        pred = load_pred(pred_path, indices)
+        preds.append(pred)
+    return preds, refs
 
 def main(args):
     target_dir = os.path.join(args.root, args.target_dir)
     split_file = os.path.join(args.root, 'test.txt')
     lattice_path_list, target_path_list = pred_ref_lists(split_file, target_dir)
     preds, refs = load_eval_data(lattice_path_list, target_path_list)
+    assert len(preds) == len(refs), \
+         'Predictions and references must be sequences of the same length'
 
     print(preds)
     print(refs)
@@ -65,7 +69,7 @@ def main(args):
 def parse_arguments(args_to_parse):
     """ Parse the command line arguments.
     """
-    description = "Run evaluation on baseline numbers"
+    description = "Run evaluation on the one-best baseline numbers"
     parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument('-f', '--root', required=True, type=str,
