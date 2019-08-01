@@ -14,10 +14,7 @@ def pred_ref_lists(file_split, target_dir):
             lattice_path = lattice_path.strip('\n')
             lattice_name = lattice_path.split('/')[-1]
             target_name = os.path.join(target_dir, lattice_name)
-            #utils.check_file(target_name)
-            print('target_name: {}'.format(type(target_name)))
             if os.path.isfile(target_name):
-                print('In if')
                 target_path_list.append(target_name)
                 lattice_path_list.append(lattice_path)
 
@@ -26,12 +23,12 @@ def pred_ref_lists(file_split, target_dir):
 def load_ref(path):
     """ Load the references and arc indices for the one-best. """
     a = np.load(path)
-    return a['ref'], a['indices']
+    return a['ref'].tolist(), a['indices'].tolist()
 
 def load_pred(path, indices):
     """ Load the posterior predictions for the one-best. """
     a = np.load(path)
-    return a['edge_data'][indices,-1]
+    return a['edge_data'][indices,-1].tolist()
 
 def load_eval_data(lattice_path_list, target_path_list):
     preds = []
@@ -41,7 +38,7 @@ def load_eval_data(lattice_path_list, target_path_list):
         refs = refs + ref
         pred = load_pred(pred_path, indices)
         preds = preds + pred
-    return preds, refs
+    return no.array(preds), np.array(refs)
 
 def main(args):
     target_dir = os.path.join(args.root, args.target_dir)
@@ -73,7 +70,7 @@ def parse_arguments(args_to_parse):
     description = "Run evaluation on the one-best baseline numbers"
     parser = argparse.ArgumentParser(description=description)
 
-    parser.add_argument('-f', '--root', required=True, type=str,
+    parser.add_argument('-r', '--root', required=True, type=str,
                         help='Path to the directory containing the test.txt file with paths to all processed lattices in the test set.')
     parser.add_argument('-t', '--target-dir', required=True, type=str,
                         help='Path to the target directory containing *.npz target files - relative to root')
