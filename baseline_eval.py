@@ -11,6 +11,7 @@ def pred_ref_lists(file_split, target_dir):
         lattice_path_list = []
         target_path_list = []
         for lattice_path in test_split_file:
+            lattice_path = lattice_path.strip('\n')
             lattice_name = lattice_path.split('/')[-1]
             target_name = os.path.join(target_dir, lattice_name)
             #utils.check_file(target_name)
@@ -37,9 +38,9 @@ def load_eval_data(lattice_path_list, target_path_list):
     refs = []
     for pred_path, ref_path in zip(lattice_path_list, target_path_list):
         ref, indices = load_ref(ref_path)
-        refs.append(ref)
+        refs = refs + ref
         pred = load_pred(pred_path, indices)
-        preds.append(pred)
+        preds = preds + pred
     return preds, refs
 
 def main(args):
