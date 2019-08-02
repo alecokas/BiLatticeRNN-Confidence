@@ -338,7 +338,10 @@ class LuongAttention(torch.nn.Module):
         return torch.sum(key * energy, dim=2)
 
     def concat_score(self, key, query):
+        #print('key.shape: {} - query.shape: {}'.format(key.shape, query.shape))
         energy = self.attn(torch.cat((key.expand(query.size(0), -1, -1), query), 2)).tanh()
+        #print('energy.shape: {}'.format(energy.shape))
+        #return
         return torch.sum(self.v * energy, dim=2)
 
     def forward(self, key, query, val):
