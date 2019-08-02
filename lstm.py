@@ -16,7 +16,7 @@ from torch.nn import init
 from utils import Dimension
 
 
-NUM_FEATURES = 5
+DURATION_IDX = 50
 
 
 class LSTMCell(nn.LSTMCell):
@@ -494,13 +494,13 @@ class Model(nn.Module):
             if self.has_grapheme_encoding:
                 grapheme_encoding, hidden_state = self.grapheme_encoder.forward(lattice.grapheme_data)
                 reduced_grapheme_info, _ = self.grapheme_attention.forward(
-                    key=grapheme_encoding,
+                    key=self.create_key(lattice, grapheme_encoding),
                     query=grapheme_encoding,
                     val=grapheme_encoding
                 )
             else:
                 reduced_grapheme_info, _ = self.grapheme_attention.forward(
-                    key=lattice.grapheme_data,
+                    key=self.create_key(lattice, None),
                     query=lattice.grapheme_data,
                     val=lattice.grapheme_data
                 )
@@ -511,6 +511,28 @@ class Model(nn.Module):
         output = self.lstm.forward(lattice, self.opt.arc_combine_method)
         output = self.dnn.forward(output)
         return output
+
+    def create_key(self, lattice, grapheme_encoding):
+        """ Concat features to create a key for grapheme attention"""
+        if self.grapheme_attention.attn_type == 'concat-enc-key':
+            word_durations = lattice.edges[:, DURATION_IDX]
+            print('lattice.edges: {}'.format(lattice.edges.shape))
+            print('word_durations.shape: {}'.format(word_durations.shape))
+            print('lattice.grapheme_data: {}'.format(lattice.grapheme_data.shape))
+            if self.has_grapheme_encoding:
+                if grapheme_encoding is None:
+                    raise Exception('No grapheme encoding to use for a key')
+                key = torch.cat((grapheme_encoding, word_durations), dim=2)
+            else:
+                key = torch.cat((lattice.grapheme_data, word_durations), dim=2)
+        else:
+            if self.has_grapheme_encoding:
+                if grapheme_encoding is None:
+                    raise Exception('No grapheme encoding to use for a key')
+                key = grapheme_encoding
+            else:
+                key = lattice.grapheme_data
+        return key
 
 def create_model(opt):
     """New Model object."""
