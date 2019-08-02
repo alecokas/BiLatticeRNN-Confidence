@@ -189,7 +189,7 @@ class Opts():
                                      'kaiming_uniform', 'kaiming_normal'])
         parser.add_argument('--grapheme-combination', default='None', type=str,
                             help='The method to use for grapheme combination',
-                            choices=['None', 'dot', 'mult', 'concat', 'scaled-dot'])
+                            choices=['None', 'dot', 'mult', 'concat', 'scaled-dot', 'concat-enc-key'])
         parser.add_argument('--grapheme-encoding', default=False, action="store_true",
                             help='Use a bidirectional recurrent structure to encode the grapheme information')
         parser.add_argument('--encoder-type', default='RNN', type=str,

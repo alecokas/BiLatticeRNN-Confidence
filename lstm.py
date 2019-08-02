@@ -319,7 +319,7 @@ class LuongAttention(torch.nn.Module):
         self.initialisation = initialisation
         self.use_bias = True
 
-        if self.attn_type not in ['dot', 'mult', 'concat', 'scaled-dot']:
+        if self.attn_type not in ['dot', 'mult', 'concat', 'scaled-dot', 'concat-enc-key']:
             raise ValueError(self.attn_type, "is not an appropriate attention type.")
 
         if self.attn_type == 'mult':
@@ -327,6 +327,10 @@ class LuongAttention(torch.nn.Module):
             self.initialise_parameters()
         elif self.attn_type == 'concat':
             self.attn = torch.nn.Linear(self.num_features * 2, self.num_features, self.use_bias)
+            self.v = Variable(torch.randn(self.num_features))
+            self.initialise_parameters()
+        elif self.attn_type == 'concat-enc-key':
+            self.attn = torch.nn.Linear(self.num_features * 2 + 1, self.num_features, self.use_bias)
             self.v = Variable(torch.randn(self.num_features))
             self.initialise_parameters()
 
