@@ -343,11 +343,7 @@ class LuongAttention(torch.nn.Module):
         return torch.sum(key * energy, dim=2)
 
     def concat_score(self, key, query):
-        #print('key.shape: {} - query.shape: {}'.format(key.shape, query.shape))
-        print('key.shape: {}'.format(key.expand(query.size(0), -1, -1).shape))
         energy = self.attn(torch.cat((key.expand(query.size(0), -1, -1), query), 2)).tanh()
-        #print('energy.shape: {}'.format(energy.shape))
-        #return
         return torch.sum(self.v * energy, dim=2)
 
     def forward(self, key, query, val):
@@ -520,28 +516,17 @@ class Model(nn.Module):
         """ Concat features to create a key for grapheme attention"""
         if self.grapheme_attention.attn_type == 'concat-enc-key':
             padded_grapheme_dim = lattice.grapheme_data.shape[1]
-            num_graphemes = padded_grapheme_dim - np.sum(~lattice.grapheme_data.any(axis=1), axis=2)
+            word_durations = torch.unsqueeze(torch.unsqueeze(lattice.edges[:, DURATION_IDX], 1).repeat(1, padded_grapheme_dim), 2)
+            mask = torch.unsqueeze((torch.sum(lattice.grapheme_data, dim=2) != 0), 2)
 
-            # num_graphemes = lattice.grapheme_data.shape[1]
-            # word_durations = torch.unsqueeze(torch.unsqueeze(lattice.edges[:, DURATION_IDX], 1).repeat(1, num_graphemes), 2)
+            masked_word_durations = word_durations * mask.type(torch.FloatTensor)
 
-            repeated_word_durations = torch.unsqueeze(lattice.edges[:, DURATION_IDX], 1).repeat(1, num_graphemes)
-            padded_space = torch.zeros(lattice.edges.shape[0], padded_grapheme_dim - num_graphemes)
-            word_durations = torch.unsqueeze(torch.concat((repeated_word_durations, padded_space), axis=1), 2)
-
-            print('repeated_word_durations.shape: {}'.format(repeated_word_durations.shape))
-            print('padded_space.edges: {}'.format(padded_space.shape))
-            print('lattice.edges: {}'.format(lattice.edges.shape))
-            print('word_durations.shape: {}'.format(word_durations.shape))
-            print('lattice.grapheme_data: {}'.format(lattice.grapheme_data.shape))
             if self.has_grapheme_encoding:
                 if grapheme_encoding is None:
                     raise Exception('No grapheme encoding to use for a key')
-                key = torch.cat((grapheme_encoding, word_durations), dim=2)
-                print('key.shape: {}'.format(key.shape))
+                key = torch.cat((grapheme_encoding, masked_word_durations), dim=2)
             else:
-                key = torch.cat((lattice.grapheme_data, word_durations), dim=2)
-                print('key.shape: {}'.format(key.shape))
+                key = torch.cat((lattice.grapheme_data, masked_word_durations), dim=2)
         else:
             if self.has_grapheme_encoding:
                 if grapheme_encoding is None:
