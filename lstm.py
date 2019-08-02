@@ -330,6 +330,7 @@ class LuongAttention(torch.nn.Module):
             self.v = Variable(torch.randn(self.num_features))
             self.initialise_parameters()
         elif self.attn_type == 'concat-enc-key':
+            # TODO: This assumes the added information is 1D - generalise this
             self.attn = torch.nn.Linear(self.num_features * 2 + 1, self.num_features, self.use_bias)
             self.v = Variable(torch.randn(self.num_features))
             self.initialise_parameters()
@@ -343,6 +344,7 @@ class LuongAttention(torch.nn.Module):
 
     def concat_score(self, key, query):
         #print('key.shape: {} - query.shape: {}'.format(key.shape, query.shape))
+        print('key.shape: {}'.format(key.expand(query.size(0), -1, -1).shape))
         energy = self.attn(torch.cat((key.expand(query.size(0), -1, -1), query), 2)).tanh()
         #print('energy.shape: {}'.format(energy.shape))
         #return
@@ -361,6 +363,8 @@ class LuongAttention(torch.nn.Module):
             attn_energies = self.dot_score(key, query)
         elif self.attn_type == 'scaled-dot':
             attn_energies = self.dot_score(key, query) / self.num_features
+        elif self.attn_type == 'concat-enc-key':
+            attn_energies = self.concat_score(key, query)
 
         # Alpha is the softmax normalized probability scores (with added dimension)
         alpha = F.softmax(attn_energies, dim=1).unsqueeze(1)
@@ -515,7 +519,18 @@ class Model(nn.Module):
     def create_key(self, lattice, grapheme_encoding):
         """ Concat features to create a key for grapheme attention"""
         if self.grapheme_attention.attn_type == 'concat-enc-key':
-            word_durations = lattice.edges[:, DURATION_IDX]
+            padded_grapheme_dim = lattice.grapheme_data.shape[1]
+            num_graphemes = padded_grapheme_dim - np.sum(~lattice.grapheme_data.any(axis=1), axis=2)
+
+            # num_graphemes = lattice.grapheme_data.shape[1]
+            # word_durations = torch.unsqueeze(torch.unsqueeze(lattice.edges[:, DURATION_IDX], 1).repeat(1, num_graphemes), 2)
+
+            repeated_word_durations = torch.unsqueeze(lattice.edges[:, DURATION_IDX], 1).repeat(1, num_graphemes)
+            padded_space = torch.zeros(lattice.edges.shape[0], padded_grapheme_dim - num_graphemes)
+            word_durations = torch.unsqueeze(torch.concat((repeated_word_durations, padded_space), axis=1), 2)
+
+            print('repeated_word_durations.shape: {}'.format(repeated_word_durations.shape))
+            print('padded_space.edges: {}'.format(padded_space.shape))
             print('lattice.edges: {}'.format(lattice.edges.shape))
             print('word_durations.shape: {}'.format(word_durations.shape))
             print('lattice.grapheme_data: {}'.format(lattice.grapheme_data.shape))
@@ -523,8 +538,10 @@ class Model(nn.Module):
                 if grapheme_encoding is None:
                     raise Exception('No grapheme encoding to use for a key')
                 key = torch.cat((grapheme_encoding, word_durations), dim=2)
+                print('key.shape: {}'.format(key.shape))
             else:
                 key = torch.cat((lattice.grapheme_data, word_durations), dim=2)
+                print('key.shape: {}'.format(key.shape))
         else:
             if self.has_grapheme_encoding:
                 if grapheme_encoding is None:

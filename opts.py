@@ -31,9 +31,6 @@ class Opts():
             # Won't read in the grapheme information
             self.args.grapheme_features = 0
 
-        if self.args.grapheme_combination == 'concat-enc-key'
-            self.args.grapheme_features += 1
-
         # Customized parameters for the network
         arch = self.args.arch.split('-')
         assert len(arch) == 4, 'bad architecture input argument'
