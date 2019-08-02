@@ -38,7 +38,7 @@ def load_eval_data(lattice_path_list, target_path_list):
         refs = refs + ref
         pred = load_pred(pred_path, indices)
         preds = preds + pred
-    return no.array(preds), np.array(refs)
+    return np.array(preds), np.array(refs)
 
 def main(args):
     target_dir = os.path.join(args.root, args.target_dir)
