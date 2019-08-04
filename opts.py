@@ -23,13 +23,11 @@ class Opts():
             lattice_type_tag = 'G'
         elif self.args.lattice_type.lower() == 'word':
             self.args.grapheme_features = 0
+            self.args.grapheme_hidden_size = 0
+            self.args.grapheme_combination  = 'None'
             lattice_type_tag = 'W'
         else:
             raise Exception('Not a valid lattice type')
-
-        if self.args.grapheme_combination == 'None':
-            # Won't read in the grapheme information
-            self.args.grapheme_features = 0
 
         # Customized parameters for the network
         arch = self.args.arch.split('-')
@@ -46,12 +44,23 @@ class Opts():
         self.args.grapheme_hidden_size = int(grapheme_arch[1])
         self.args.grapheme_bidirectional = True
 
+        if self.args.grapheme_combination == 'None':
+            # Won't read in the grapheme information
+            self.args.grapheme_features = 0
+            self.args.grapheme_hidden_size = 0
+
         # Customized parameters for dataset
         if 'onebest' in self.args.dataset:
+            # TODO: Test this input size
+            print('Warning: Untested code')
             self.args.inputSize = 52
             self.args.onebest = True
-        elif self.args.dataset.startswith('lattice'):
+        elif self.args.dataset.startswith('lattice') or self.args.dataset.endswith('-lat'):
             self.args.inputSize = 54
+            if self.args.grapheme_encoding:
+                self.args.inputSize += self.args.grapheme_hidden_size * 2
+            else:
+                self.args.inputSize += self.args.grapheme_features
         elif self.args.dataset.startswith('confnet') or self.args.dataset.endswith('-cn'):
             self.args.inputSize = 52
             if 'lm' in self.args.dataset and 'am' in self.args.dataset:
@@ -60,11 +69,11 @@ class Opts():
                 self.args.inputSize += self.args.grapheme_hidden_size * 2
             else:
                 self.args.inputSize += self.args.grapheme_features
-            print('self.args.inputSize: {}'.format(self.args.inputSize))
         else:
             # TODO: Make cleaner
             self.args.inputSize = 54 + self.args.grapheme_features
             # raise ValueError('Expecting the dataset name to indicate if 1-best, lattice, or confusion network')
+        print('self.args.inputSize: {}'.format(self.args.inputSize))
 
         if self.args.arc_combine_method == 'attention':
             self.args.attentionLayers = 1
