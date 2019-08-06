@@ -60,7 +60,7 @@ def main():
             %(nce, area, area_bl))
         trainer.logger['test'].write('NCE: %f\nAUC(PR): %f\n' %(nce, area))
         evaluation.plot_pr([precision, precision_bl], [recall, recall_bl],
-                           [area, area_bl], ['BiRNN', 'posterior'],
+                           [area, area_bl], ['BiLatticeRNN', 'posterior'],
                            opt.resume)
         np.savez(os.path.join(opt.resume, 'result.npz'),
                  prediction=prediction, reference=reference, posteriors=post)
@@ -91,7 +91,7 @@ def main():
         utils.print_color_msg(
             "".ljust(7) + "NCE: %.4f. AUC(PR): %.4f" %(nce, area))
         trainer.logger['test'].write('NCE: %f\nAUC(PR): %f\n' %(nce, area))
-        evaluation.plot_pr([precision], [recall], [area], ['BiRNN'], opt.resume)
+        evaluation.plot_pr([precision], [recall], [area], ['BiLatticeRNN'], opt.resume)
 
         # Flush write out and reset pointer
         for open_file in trainer.logger.values():

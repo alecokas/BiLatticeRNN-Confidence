@@ -109,6 +109,7 @@ def plot_pr(precision, recall, area, name, dst_dir=None):
     plt.legend(loc='lower right')
     plt.xlim([0, 1])
     plt.ylim([0, 1])
+    plt.grid()
     plt.ylabel('Precision')
     plt.xlabel('Recall')
     plt.savefig(os.path.join(dst_dir, 'pr.pdf'), bbox_inches='tight')
