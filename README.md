@@ -1,9 +1,7 @@
 # Bi-Directional Lattice Recurrent Neural Network for Confidence Score Estimation
 ### Uncertainty and confidence scores in sequence data
 
-Building on the work of BiLatRNN for confidence estimation
-
-This repo provides mechanisms for subword (grapheme) level information to be introduced into a Bi-directional Lattice Recurrent Neural Network. This work is an extension of Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation as documented in:
+This repo provides mechanisms for subword level information to be introduced into a Bi-directional Lattice Recurrent Neural Network. This work is an extension of Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation as documented in:
 
 >**[Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation](https://arxiv.org/abs/1810.13024)**
 >
@@ -81,9 +79,10 @@ In the `data/` directory:
   * `topo_order` - a list of node indices that follows a topological order;
   * `child_2_parent` - a dictionary that maps from a node index to a dictionary, whose key is the index of the parent node and the value is the index of the connecting edge for lattices or a list indices of the connecting edges for confusion networks. This is used for the forward recursion;
   * `parent_2_child` – a dictionary that maps from a node index to a dictionary, whose key is the index of the child node and the value is the index of the connecting edge for lattices or a list indices of the connecting edges for confusion networks. This is used for the backward recursion;
-  * `edge_data` – a numpy 2D array (matrix) containing all relevant information from the source file where the row index is the edge index. For an arc in a lattice, the information could include the word, the start time and the end time, LM and AM scores. For an arc in a confusion network, the arc posterior probability, the start and the end time should be available;
+  * `edge_data` – a numpy 2D array (matrix) containing all relevant information from the source file where the row index is the edge index. For an arc in a lattice, the information could include the word, duration, LM and AM scores, and the arc posterior probability. For an arc in a confusion network, the arc posterior probability, the start and the end time should be available;
   * `ignore` – a list of edge indices whose corresponding word is one of the following `<s>, </s>, !NULL, <hes>`, which are due to be skipped during training of the network.
   * `grapheme_data` - a numpy array of arrays containing grapheme information in the form of a 4D grapheme embedding and the grapheme durations.
+  * `start_times` – a start time (in seconds) of each arc.
 
 * `target/` contains the pre-processed training targets which correspond to the ones in `lattices/`. They are also stored in `.npz` format. Each one has the following attributes:
   * `target` - a list of target confidence scores for each arc in the corresponding lattice, with each element being either 0(incorrect) or 1(correct);
