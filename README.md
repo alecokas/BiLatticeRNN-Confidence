@@ -1,8 +1,9 @@
-# Building on the work of BiLatRNN for confidence estimation
+# Bi-Directional Lattice Recurrent Neural Network for Confidence Score Estimation
+### Uncertainty and confidence scores in sequence data
 
-This repo is a work in progress of my ongoing efforts to introduce grapheme level information to enrich the arc level lattice information.
+Building on the work of BiLatRNN for confidence estimation
 
-Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation is documented in this paper:
+This repo provides mechanisms for subword (grapheme) level information to be introduced into a Bi-directional Lattice Recurrent Neural Network. This work is an extension of Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation as documented in:
 
 >**[Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation](https://arxiv.org/abs/1810.13024)**
 >
@@ -41,7 +42,7 @@ To train the model on CUED servers,
 
 ```bash
 export PYTHONPATH=$PYTHONPATH:$PWD
-OMP_NUM_THREADS=1 python3 main.py
+OMP_NUM_THREADS=1 python main.py
 ```
 
 For detailed options,
