@@ -13,7 +13,6 @@ import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn import functional as F
 from torch.nn import init
-from utils import Dimension
 
 
 DURATION_IDX = 50

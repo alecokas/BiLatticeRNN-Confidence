@@ -64,9 +64,3 @@ def remove_file(file_path):
         os.remove(file_path)
     except OSError:
         pass
-
-
-class Dimension(IntEnum):
-    arc = 0
-    grapheme = 1
-    feature = 2
