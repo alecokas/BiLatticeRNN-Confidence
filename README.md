@@ -1,21 +1,24 @@
 # Bi-Directional Lattice Recurrent Neural Network for Confidence Score Estimation
 ### Uncertainty and confidence scores in sequence data
 
-This repo provides mechanisms for subword level information to be introduced into a Bi-directional Lattice Recurrent Neural Network. This work is an extension of Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation as documented in:
+This repo provides mechanisms for subword level information to be introduced into a Bi-directional Lattice Recurrent Neural Network (BiLatticeRNN). BiLatticeRNN is a generalisation of a BiLSTM such that it is able to operate on DAG-like structures such as lattice and confusion networks. In this source code, we use this framework to generate confidence score estimates for each word in the  lattice, confusion network or 1-best list. This is incredibly useful for automatic speech recognition (ASR) applications such as information retrieval, deletion detection, and machine translation. An improvement in Normalised Cross Entropy (NCE) and AUC (Precision-Recall) compared to the traditional word posterior confidence score estimate is achievable. By including grapheme features, such as duration and a grapheme embedding, improvements on a purely word-based implementation is possible.
 
->**[Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation](https://arxiv.org/abs/1810.13024)**
+One-best sequences                  |  Confusion Networks
+:------------------------------:|:------------------------------:
+![onebest](fig/BiLSTM-PR.png)  |  ![lattice](fig/BiConfRNN-PR-allarcs.png)
+
+These results were generated on the CUED graphemic Georgian ASR system which was trained on the Georgian language pack from the BABEL project.
+
+
+This work is an extension of Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation as documented in:
+
+>[Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation](https://arxiv.org/abs/1810.13024)
 >
 >*Qiujia Li\*, Preben Ness\*, Anton Ragni, Mark Gales* (\* indicates equal contribution)
 >
 >Submitted to ICASSP 2019
 
-## The original BiLatRNN model
-
-In short, this model is an extension of classical LSTM network that runs on linear sequences to **BiCNRNN** that runs on *confusion networks* (a.k.a. sausages) or **BiLatRNN** that runs on *lattices*.
-
-This allows intermediate information produced by the speech recogniser to be fully utilised to predict not only confidence scores on one-best sequences, but on all alternative word hypotheses, which are useful in many confidence-related tasks.
-
-The model gives significant improvement on confidence scores. Precision-recall curves are shown below.
+The model presented in this paper provides significant improvements on confidence scores in terms of NCE and AUC. Precision-recall curves are shown below.
 
 one-best paths                  |  lattices
 :------------------------------:|:------------------------------:
@@ -40,7 +43,7 @@ To train the model on CUED servers,
 
 ```bash
 export PYTHONPATH=$PYTHONPATH:$PWD
-OMP_NUM_THREADS=1 python main.py
+OMP_NUM_THREADS=1 python main.py [arguments]
 ```
 
 For detailed options,
@@ -49,9 +52,9 @@ For detailed options,
 python main.py --help
 ```
 
-Note that the environment variable `OMP_NUM_THREADS` is essential for CPU parallelisation.
+Note that the environment variable `OMP_NUM_THREADS=1` is essential for CPU parallelisation.
 
-## Data Pre-processing
+## Dataset
 
 This repository assumes a root directory with pre-processed data organised as follows:
 
@@ -67,11 +70,9 @@ root/
   |     |   cv.txt
   |     |   test.txt
   |     |   stats.npz
-  |
-  |-- exp/
-  |     |-- (saved and generated models)
-  |     |-- ...
 ```
+
+See https://github.com/alecokas/BiLatticeRNN-data-processing for assorted HTK-style lattice and confusion network processing.
 
 In the `data/` directory:
 
@@ -95,7 +96,7 @@ In the `data/` directory:
   * `mean` - the mean of input feature vectors across the dataset;
   * `std` - the standard deviation of input feature vectors across the dataset.
 
-## References
+### References for BiLatticeRNN on word-based lattices
 
 ```plaintext
 @article{Li2018BiLatRNN,
