@@ -1,4 +1,4 @@
-"""`LSTM.py` defines:
+""" `LSTM.py` defines:
     * basic LSTM cell,
     * LSTM layers for lattices building from LSTM cell,
     * DNN layers including the output layer,
@@ -19,10 +19,10 @@ DURATION_IDX = 50
 
 
 class LSTMCell(nn.LSTMCell):
-    """Overriding initialization and naming methods of LSTMCell."""
+    """ Overriding initialization and naming methods of LSTMCell. """
 
     def reset_parameters(self):
-        """Orthogonal Initialization."""
+        """ Orthogonal Initialization """
         init.orthogonal(self.weight_ih.data)
         self.weight_hh.data.set_(torch.eye(self.hidden_size).repeat(4, 1))
         # The bias is just set to zero vectors.
@@ -31,7 +31,7 @@ class LSTMCell(nn.LSTMCell):
             init.constant(self.bias_hh.data, val=0)
 
     def __repr__(self):
-        """Rename."""
+        """ Rename """
         string = '{name}({input_size}, {hidden_size})'
         if 'bias' in self.__dict__ and self.bias is False:
             string += ', bias={bias}'
@@ -42,7 +42,7 @@ class LSTM(nn.Module):
 
     def __init__(self, cell_class, input_size, hidden_size, num_layers=1,
                  use_bias=True, bidirectional=True, attention=None, **kwargs):
-        """Build multi-layer LSTM from LSTM cell."""
+        """ Build multi-layer LSTM from LSTM cell """
         super(LSTM, self).__init__()
         self.cell_class = cell_class
         self.input_size = input_size
@@ -65,31 +65,31 @@ class LSTM(nn.Module):
         self.reset_parameters()
 
     def get_cell(self, layer, direction):
-        """Get LSTM cell by layer."""
+        """ Get LSTM cell by layer. """
         suffix = '_reverse' if direction == 1 else ''
         return getattr(self, 'cell_{}{}'.format(layer, suffix))
 
     def reset_parameters(self):
-        """Initialise parameters for all cells."""
+        """ Initialise parameters for all cells. """
         for layer in range(self.num_layers):
             for direction in range(self.num_directions):
                 cell = self.get_cell(layer, direction)
                 cell.reset_parameters()
 
     def combine_edges(self, combine_method, lattice, hidden, in_edges):
-        """Methods for combining hidden states of all incoming edges.
+        """ Methods for combining hidden states of all incoming edges.
 
-        Arguments:
-            combine_method {str} -- choose from 'max', 'mean', 'posterior', 'attention', 'attention_simple'
-            lattice {obj} -- lattice object
-            hidden {list} -- each element is a hidden representation
-            in_edges {list} -- each element is the index of incoming edges
+            Arguments:
+                combine_method {str}: choose from 'max', 'mean', 'posterior', 'attention', 'attention_simple'
+                lattice {obj}: lattice object
+                hidden {list}: each element is a hidden representation
+                in_edges {list}: each element is the index of incoming edges
 
-        Raises:
-            NotImplementedError -- the method is not yet implemented
+            Raises:
+                NotImplementedError: the method is not yet implemented
 
-        Returns:
-            tensor -- the combined hidden representation
+            Returns:
+                tensor: the combined hidden representation
         """
         # Default: last element of the input feature is the posterior prob
         index = -1
@@ -130,7 +130,7 @@ class LSTM(nn.Module):
             raise NotImplementedError
 
     def _forward_rnn(self, cell, lattice, input_, combine_method, state):
-        """Forward through one layer of LSTM."""
+        """ Forward through one layer of LSTM. """
         edge_hidden = [None] * lattice.edge_num
         node_hidden = [None] * lattice.node_num
 
@@ -181,7 +181,7 @@ class LSTM(nn.Module):
         return edge_hidden, end_node_state
 
     def forward(self, lattice, combine_method):
-        """Complete multi-layer LSTM network."""
+        """ Complete multi-layer LSTM network. """
         # Set initial states to zero
         h_0 = Variable(lattice.edges.data.new(self.num_directions,
                                               self.hidden_size).zero_())
@@ -309,9 +309,17 @@ class Attention(nn.Module):
         return F.softmax(output, dim=1)
 
 class LuongAttention(torch.nn.Module):
-    """ Luong attention layer as defined in: https://arxiv.org/pdf/1508.04025.pdf """
+    """ Luong attention layer as defined in: https://arxiv.org/pdf/1508.04025.pdf 
+        Specifically defined with grapheme combination in mind.
+    """
     def __init__(self, attn_type, num_features, initialisation):
-        """ Initialise the Attention layer """
+        """ Initialise the Attention layer 
+        
+            Arguments:
+                attn_type {string}: The type of attention similarity function to apply
+                num_features {int}: The number of input feature dimensions per grapheme
+                initialisation {string}: The type of weight initialisation to use
+        """
         super(LuongAttention, self).__init__()
         self.num_features = num_features
         self.attn_type = attn_type
@@ -335,13 +343,16 @@ class LuongAttention(torch.nn.Module):
             self.initialise_parameters()
 
     def dot_score(self, key, query):
+        """ Dot product similarity function """
         return torch.sum(key * query, dim=2)
 
     def mult_score(self, key, query):
+        """ Multiplicative similarity function (also called general) """
         energy = self.attn(query)
         return torch.sum(key * energy, dim=2)
 
     def concat_score(self, key, query):
+        """ Concatinative similarity function (also called additive) """
         energy = self.attn(torch.cat((key.expand(query.size(0), -1, -1), query), 2)).tanh()
         return torch.sum(self.v * energy, dim=2)
 
@@ -375,6 +386,9 @@ class LuongAttention(torch.nn.Module):
             init.constant(self.attn.bias.data, val=0)
 
 class GraphemeEncoder(nn.Module):
+    """ Bi-directional recurrent neural network designed 
+        to encode a grapheme feature sequence.
+    """
     def __init__(self, opt):
         nn.Module.__init__(self)
 
@@ -421,16 +435,16 @@ class GraphemeEncoder(nn.Module):
         self.initialise_parameters()
 
     def forward(self, x):
-        # Passing in the input into the model and obtaining outputs
+        """ Passing in the input into the model and obtaining outputs and the updated hidden state """
         out, hidden_state = self.encoder(x)
         return out, hidden_state
 
     def init_hidden_state(self, batch_size):
-        # Generate the first hidden state of zeros
+        """ Generate the first hidden state of zeros """
         return torch.zeros(self.num_layers, batch_size, self.hidden_size)
 
     def initialise_parameters(self):
-        """Initialise parameters for all layers."""
+        """ Initialise parameters for all layers. """
         init_method = getattr(init, self.initialisation)
         init_method(self.encoder.weight_ih_l0.data)
         init_method(self.encoder.weight_hh_l0.data)
@@ -491,7 +505,7 @@ class Model(nn.Module):
         if self.is_graphemic:
 
             if self.has_grapheme_encoding:
-                grapheme_encoding, hidden_state = self.grapheme_encoder.forward(lattice.grapheme_data)
+                grapheme_encoding, _ = self.grapheme_encoder.forward(lattice.grapheme_data)
                 reduced_grapheme_info, _ = self.grapheme_attention.forward(
                     key=self.create_key(lattice, grapheme_encoding),
                     query=grapheme_encoding,
@@ -527,6 +541,7 @@ class Model(nn.Module):
             else:
                 key = torch.cat((lattice.grapheme_data, masked_word_durations), dim=2)
         else:
+            # For all self-attention schemes
             if self.has_grapheme_encoding:
                 if grapheme_encoding is None:
                     raise Exception('No grapheme encoding to use for a key')

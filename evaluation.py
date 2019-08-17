@@ -1,13 +1,14 @@
 """Evaluation functions for LatticeRNN."""
 
-import os
-import sys
-import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
+import os
+import sys
 from sklearn.metrics import roc_curve, precision_recall_curve, auc
+
 
 def log(array):
     """Clip the elements of arrays before taking log."""

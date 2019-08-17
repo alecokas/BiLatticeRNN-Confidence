@@ -4,8 +4,8 @@
 """
 
 import logging
-import os
 import numpy as np
+import os
 from torch.utils.data import Dataset, DataLoader
 import utils, lattice
 

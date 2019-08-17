@@ -4,6 +4,7 @@ import os
 import torch
 import utils, lstm
 
+
 def setup(opt, checkpoint):
     """Create new model or reload from checkpoint model"""
     # Resume model if checkpoint is provided, create a new model otherwise.

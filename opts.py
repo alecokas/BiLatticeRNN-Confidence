@@ -19,6 +19,8 @@ class Opts():
         torch.set_default_tensor_type('torch.FloatTensor')
         torch.manual_seed(self.args.manualSeed)
 
+        # Indicate the model type. This indicates what is expected from
+        # the lattice objects
         if self.args.lattice_type.lower() == 'grapheme':
             lattice_type_tag = 'G'
         elif self.args.lattice_type.lower() == 'word':
@@ -38,6 +40,7 @@ class Opts():
         self.args.linearSize = int(arch[3])
         self.args.bidirectional = True
 
+        # Grapheme mergering architecture
         grapheme_arch = self.args.grapheme_arch.split('-')
         assert len(grapheme_arch) == 2, 'bad grapheme model architecture input argument'
         self.args.grapheme_num_layers = int(grapheme_arch[0])
@@ -56,14 +59,17 @@ class Opts():
             self.args.inputSize = 52
             self.args.onebest = True
         elif self.args.dataset.startswith('lattice') or self.args.dataset.endswith('-lat'):
+            # Is a lattice dataset
             self.args.inputSize = 54
             if self.args.grapheme_encoding:
                 self.args.inputSize += self.args.grapheme_hidden_size * 2
             else:
                 self.args.inputSize += self.args.grapheme_features
         elif self.args.dataset.startswith('confnet') or self.args.dataset.endswith('-cn'):
+            # Is a confusion network dataset
             self.args.inputSize = 52
             if 'lm' in self.args.dataset and 'am' in self.args.dataset:
+                # Include LM and AM
                 self.args.inputSize += 2
             if self.args.grapheme_encoding:
                 self.args.inputSize += self.args.grapheme_hidden_size * 2
@@ -73,7 +79,6 @@ class Opts():
             # TODO: Make cleaner
             self.args.inputSize = 54 + self.args.grapheme_features
             # raise ValueError('Expecting the dataset name to indicate if 1-best, lattice, or confusion network')
-        print('self.args.inputSize: {}'.format(self.args.inputSize))
 
         if self.args.arc_combine_method == 'attention':
             self.args.attentionLayers = 1
@@ -84,6 +89,7 @@ class Opts():
             self.args.nEpochs = 2
             self.args.nThreads = 1
 
+        # Build a useful hash key and model directory
         if self.args.grapheme_encoding:
             assert self.args.encoding_dropout <= 1 and self.args.encoding_dropout >= 0, \
                 'The dropout CLI argument must be a valid ratio'

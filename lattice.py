@@ -1,24 +1,26 @@
-"""`lattice.py` defines:
-    * Lattice object containing node and edge information
-    * A in-place reverse function.
+"""
+    `lattice.py` defines:
+    * Lattice object containing node and edge information - optional subword level information
+    * An in-place reverse function.
 """
 
 import sys
 import numpy as np
 
+
 class Lattice:
-    """Lattice object."""
+    """ Lattice object """
 
     def __init__(self, path, mean=None, std=None, lattice_type='grapheme'):
-        """Lattice object.
+        """ Lattice object.
 
-        Arguments:
-            path {string} -- absolute path of a pre-processed lattice
-
-        Keyword Arguments:
-            mean {numpy array} -- mean vector of the dataset (default: {None})
-            std {numpy array} -- standard deviation of the dataset (default:
-                {None})
+            Arguments:
+                path {string}: absolute path of a pre-processed lattice
+                mean {numpy array}: mean vector of the dataset (default: {None})
+                std {numpy array}: standard deviation of the dataset (default:
+                    {None})
+                lattice_type {string}: Indicates if the model is expecting `word`
+                                    or `grapheme` lattices
         """
         self.path = path
         self.mean = mean
@@ -32,8 +34,8 @@ class Lattice:
         self.load()
 
     def load(self):
-        """Load the pre-processed lattice.
-        Normalise to zero mean and unit variance if mean and std are provided.
+        """ Load the pre-processed lattice.
+            Normalise to zero mean and unit variance if mean and std are provided.
         """
         data = np.load(self.path)
         self.nodes = list(data['topo_order'])
@@ -70,7 +72,7 @@ class Lattice:
             raise Exception('All lattices must have a definite positive number of nodes.')
 
     def reverse(self):
-        """Reverse the graph."""
+        """ Reverse the graph """
         self.nodes.reverse()
         self.child_dict, self.parent_dict = self.parent_dict, self.child_dict
 
@@ -79,13 +81,13 @@ class Lattice:
         return self.edges.shape[1]
 
 class Target:
-    """Target object."""
+    """ Target object """
 
     def __init__(self, path):
-        """Target constructor
+        """ Target constructor
 
-        Arguments:
-            path {str} -- absolute path to target file.
+            Arguments:
+                path {str}: absolute path to target file.
         """
         self.path = path
         self.target = None
@@ -94,7 +96,7 @@ class Target:
         self.load()
 
     def load(self):
-        """Load target, one-best path indices and reference."""
+        """ Load target, one-best path indices and reference """
         data = np.load(self.path)
         self.target = data['target']
         self.indices = list(data['indices'])
