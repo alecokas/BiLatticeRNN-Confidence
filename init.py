@@ -1,8 +1,9 @@
 """Model setup."""
 
+from model import create_model
 import os
 import torch
-import utils, lstm
+import utils
 
 
 def setup(opt, checkpoint):
@@ -15,7 +16,7 @@ def setup(opt, checkpoint):
         model = torch.load(model_path)
     else:
         print("".ljust(4) + "=> Creating new model")
-        model = lstm.create_model(opt)
+        model = create_model(opt)
 
     # Load optim_file if checkpoint is provided, return None otherwise.
     if checkpoint is not None:
