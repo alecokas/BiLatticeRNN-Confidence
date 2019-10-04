@@ -53,6 +53,21 @@ def load_eval_data(lattice_path_list, target_path_list):
         refs = refs + ref
         pred = load_pred(pred_path, indices)
         preds = preds + pred
+    # Remove all predictions and references were the reference is None
+    return remove_unknown_indices(preds, refs)
+
+def remove_unknown_indices(preds, refs):
+    """ Obtain the index position for all unkown references (indicated by None),
+        and remove these from the two lists privuded
+
+        Arguments:
+            refs: list of references (where the elements are either 1, 0, or None)
+            preds: list of predictions (1 or 0)
+    """
+    indices_to_remove = [index for index, ref in enumerate(refs) if ref is None]
+    for index in sorted(indices_to_remove, reverse=True):
+        del preds[index]
+        del refs[index]
     return np.array(preds), np.array(refs)
 
 def main(args):
