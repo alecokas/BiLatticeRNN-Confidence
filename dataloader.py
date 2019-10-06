@@ -52,14 +52,20 @@ class LatticeDataset(Dataset):
                     else:
                         pass
         stats = np.load(stats_file)
-        self.mean = stats['mean']
-        self.std = stats['std']
+        self.word_mean = stats['mean']
+        self.word_std = stats['std']
+        if 'subword_mean' in stats and 'subword_std' in stats:
+            self.subword_mean = stats['subword_mean']
+            self.subword_std = stats['subword_std']
+        else:
+            self.subword_mean = None
+            self.subword_std = None
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        return (lattice.Lattice(self.data[idx], self.mean, self.std, lattice_type=self.lattice_type),
+        return (lattice.Lattice(self.data[idx], self.word_mean, self.word_std, self.subword_mean, self.subword_std, lattice_type=self.lattice_type),
                 lattice.Target(self.target[idx]))
 
 def collate_fn(batch):
