@@ -103,7 +103,7 @@ class LSTM(nn.Module):
             return result
         elif combine_method == 'posterior':
             posterior = torch.cat([lattice.edges[i, index] for i in in_edges])
-            posterior = posterior*lattice.std[0, index] + lattice.mean[0, index]
+            posterior = posterior*lattice.word_std[0, index] + lattice.word_mean[0, index]
             posterior.data.clamp_(min=1e-6)
             posterior = posterior/torch.sum(posterior)
             if np.isnan(posterior.data.numpy()).any():
@@ -116,7 +116,7 @@ class LSTM(nn.Module):
             # Posterior of incoming edges
             posterior = torch.cat([lattice.edges[i, index] for i in in_edges]).view(-1, 1)
             # Undo whitening
-            posterior = posterior * lattice.std[0, index] + lattice.mean[0, index]
+            posterior = posterior * lattice.word_std[0, index] + lattice.word_mean[0, index]
             context = torch.cat(
                 (posterior, torch.ones_like(posterior) * torch.mean(posterior),
                  torch.ones_like(posterior)*torch.std(posterior)), dim=1)
