@@ -80,6 +80,10 @@ class Opts():
             self.args.inputSize = 54 + self.args.grapheme_features
             # raise ValueError('Expecting the dataset name to indicate if 1-best, lattice, or confusion network')
 
+        if self.args.forceInputSize != -1:
+            # Override implicit input size code above
+            self.args.inputSize = self.args.forceInputSize
+
         if self.args.arc_combine_method == 'attention':
             self.args.attentionLayers = 1
             self.args.attentionSize = 64
@@ -146,6 +150,8 @@ class Opts():
                             help='Flag to shuffle the dataset before training')
         parser.add_argument('--subtrain', default=False, action='store_true',
                             help='Run training on a subset of the dataset, but cross validation and test on the full sets')
+        parser.add_argument('--forceInputSize', default=-1, type=int,
+                            help='Explicitly dictate the number of features to use')
         # Grapheme data options
         parser.add_argument('--lattice-type', default='word', choices=['grapheme', 'word'],
                             help='Indicate whether the grapheme information should be read from the lattice or not.')
