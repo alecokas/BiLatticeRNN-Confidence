@@ -10,7 +10,7 @@ def mkdir(directory):
         try:
             os.makedirs(directory)
         except OSError:
-            print("Direcotory %s already exists." %directory)
+            print("Directory %s already exists." %directory)
 
 def savecmd(directory, cmd):
     """Cache commands."""
