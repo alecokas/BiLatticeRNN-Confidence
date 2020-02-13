@@ -17,7 +17,7 @@ The paper, Confidence Estimation for Black Box Automatic Speech Recognition Syst
 
 You can also find more information on this topic in my [thesis](https://alecokas.github.io/PDFs/thesis/Uncertainty_and_Confidence_Scores_in_Sequence_Data.pdf) and [website](https://alecokas.github.io/).
 
-This code is an extension of [Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation](https://arxiv.org/abs/1810.13024).
+This work is an extension of [Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation](https://arxiv.org/abs/1810.13024).
 
 ## Usage
 
