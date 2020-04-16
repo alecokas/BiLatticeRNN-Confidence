@@ -11,13 +11,13 @@ These results were generated on the CUED graphemic Georgian ASR system which was
 
 The paper, Confidence Estimation for Black Box Automatic Speech Recognition Systems Using Lattice Recurrent Neural Networks, used this framework and further documents the use of this model for black-box ASR. If you use this code, please cite:
 
-*  A. Kastanos, A. Ragni, M.J.F. Gales, Confidence Estimation for Black Box Automatic Speech Recognition Systems Using Lattice Recurrent Neural Networks, in Proc. ICASSP, 2020 [[arXiv]](https://arxiv.org/abs/1910.11933)
+*  A. Kastanos, A. Ragni, M.J.F. Gales, Confidence Estimation for Black Box Automatic Speech Recognition Systems Using Lattice Recurrent Neural Networks, in Proc. ICASSP, 2020 [[arXiv]](https://arxiv.org/abs/1910.11933), [[ICASSP]](https://ieeexplore.ieee.org/document/9053264)
 
 
 
 You can also find more information on this topic in my [thesis](https://alecokas.github.io/PDFs/thesis/Uncertainty_and_Confidence_Scores_in_Sequence_Data.pdf) and [website](https://alecokas.github.io/).
 
-This work is an extension of [Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation](https://arxiv.org/abs/1810.13024).
+This code base builds on the code from [Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation](https://arxiv.org/abs/1810.13024).
 
 ## Usage
 
@@ -89,8 +89,19 @@ In the `data/` directory:
   * `mean` - the mean of input feature vectors across the dataset;
   * `std` - the standard deviation of input feature vectors across the dataset.
 
-### References for BiLatticeRNN on word-based lattices
-
+### If you use this work, please cite:
+```plaintext
+@INPROCEEDINGS{9053264,
+               author={A. {Kastanos} and A. {Ragni} and M. J. F. {Gales}},
+               booktitle={ICASSP 2020 - 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+               title={Confidence Estimation for Black Box Automatic Speech Recognition Systems Using Lattice Recurrent Neural Networks},
+               year={2020},
+               volume={},
+               number={},
+               pages={6329-6333},
+}
+```
+or
 ```plaintext
 @misc{alex2019confidence,
     title={Confidence Estimation for Black Box Automatic Speech Recognition Systems Using Lattice Recurrent Neural Networks},
@@ -100,7 +111,11 @@ In the `data/` directory:
     archivePrefix={arXiv},
     primaryClass={eess.AS}
 }
+```
 
+### Other work using BiLatticeRNN on word-based lattices
+
+```plaintext
 @article{Li2018BiLatRNN,
   title={Bi-Directional Lattice Recurrent Neural Networks for Confidence Estimation},
   author={Li, Qiujia and Ness, Preben and Ragni, Anton and Gales, Mark},
